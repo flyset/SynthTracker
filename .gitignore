@@ -1,0 +1,12 @@
+# === Build System Specific ===
+/build/
+Makefile
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+tfmx
+
+# === IDE and Editor Specific ===
+# Visual Studio Code
+.vscode/
+tfmx.code-workspace
