@@ -24,14 +24,12 @@ heavy CPU load otherwise...) */
 #define HALFBUFSIZE (65536 * 4)
 #define BUFSIZE (131072 * 4)
 
-union
-{
+union {
  S16 b16[BUFSIZE/2];
  U8 b8[BUFSIZE];
 } buf;
 
 volatile int bhead=0,btail=0;
-
 
 S32 tbuf[HALFBUFSIZE*2];
 
@@ -68,8 +66,8 @@ void TfmxTakedown(void);
 int try_to_makeblock(void);
 void tfmxIrqIn(void);
 
-static int available_sound_data()
-{
+static int available_sound_data() {
+
     int l = bhead - btail + BUFSIZE;
     l %= BUFSIZE;
 
@@ -112,19 +110,16 @@ void filter(S32 *b, int num)
 
 /* This one looks like a good candidate for high optimization... */
 
-void stereoblend(S32 *b,int num)
-{
+void stereoblend(S32 *b,int num) {
 	//printf("*** stereoblend: stereoblend\n");
-	if (blend)
-	{
+	if (blend) {
 		int x;
-		for (x=0;x<num;x++)
-		{
+		for (x=0;x<num;x++) {
 			register int y;
 			y=((b[HALFBUFSIZE]*11)+((*b)*5))>>4;
-                        b[0]=((b[HALFBUFSIZE]*5)+((*b)*11))>>4;
-                        b[HALFBUFSIZE]=y;
-                        b++;
+			b[0]=((b[HALFBUFSIZE]*5)+((*b)*11))>>4;
+			b[HALFBUFSIZE]=y;
+			b++;
 		}
 	}
 }
