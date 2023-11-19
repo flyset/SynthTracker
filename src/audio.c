@@ -82,6 +82,13 @@ S32 calculateSamplesToProcess(void);
 void processAudioData(S32* num_samples_to_process, S32* buf_position, int* buf_proc_counter, int* audio_samples);
 void checkThreadSync(int loops);
 
+// Function prototypes
+void initSyncPrimitives(void);
+void processAudio(void);
+void finalizeAudioOutput(void);
+void waitForRemainingAudioData(void);
+void cleanupSyncPrimitives(void);
+
 void tfmxIrqIn(void);
 
 static int available_sound_data() {
@@ -239,165 +246,109 @@ static int nul=0;
 void (*mix)(struct Audio *, int, S32 *);
 
 void mix_add(struct Audio *audio, int n, S32 *b) {
-	//printf("*** mix_add: mix_add\n");
-	register S8 * p = audio->sbeg;
-	register U32 ps=audio->pos;
-	int v=audio->vol;
-	U32 d=audio->delta;
-	U32 l=(audio->slen<<14);
+    if (audio->vol > 0x40) {
+        audio->vol = 0x40;
+    }
 
-	if (v>0x40)v=0x40;
+    if (audio->sbeg == (S8 *)&nul || ((audio->mode & 1) == 0) || (audio->slen == 0)) {
+        return;
+    }
 
-/* This used to have (p==&smplbuf).  Broke with GrandMonsterSlam */
-	if ((p==(S8 *)&nul)||( ((audio->mode)&1)==0 )||(l<0x10000))
-		return;
-	if ((audio->mode&3)==1)
-	{
-		p=audio->sbeg=audio->SampleStart;
-		l=(audio->slen=audio->SampleLength)<<14;
-		ps=0;
-		audio->mode|=2;
-/*		audio->loop(&audio);*/
-	}
-	if (!v)
-	{
-#if 0		/* Will be supported someday... */
-		while(n--){
-			(*b++)+=(p[(ps+=d)>>14]*v);
-			if (ps<l) continue;
-			ps-=l;
-			p=audio->SampleStart;
-			if (((l=audio->SampleLength<<14)<=0x10000) ||
-			    (!audio->loop(audio)) )
-					{
-				ps=l=d=0;
-				p=smplbuf;
-				break;
-			}
-		}
-		return;
-#endif
-	}
-	while(n--){
-		(*b++)+=(p[(ps+=d)>>14]*v);
-		if (ps<l) continue;
-		ps-=l;
-		p=audio->SampleStart;
-		if ( ((l=((audio->slen=audio->SampleLength)<<14))<0x10000) ||
-		     (!audio->loop(audio)) )
-				 {
-			audio->slen=ps=d=0;
-			p=smplbuf;
-			break;
-		}
-	}
-	audio->sbeg=p;
-	audio->pos=ps;
-	audio->delta=d;
-	if (audio->mode&4) (audio->mode=0);
+    if ((audio->mode & 3) == 1) {
+        audio->sbeg = audio->SampleStart;
+        audio->slen = audio->SampleLength;
+        audio->pos = 0;
+        audio->mode |= 2;
+    }
+
+    if (audio->vol == 0) {
+        return;
+    }
+
+    register S8 *p = audio->sbeg;
+    register U32 ps = audio->pos;
+    U32 d = audio->delta;
+    U32 l = (audio->slen << 14);
+
+    while (n--) {
+        *b++ += (p[(ps += d) >> 14] * audio->vol);
+        if (ps < l) {
+            continue;
+        }
+
+        ps -= l;
+        p = audio->SampleStart;
+        if (((l = (audio->slen = audio->SampleLength) << 14) < 0x10000) || !audio->loop(audio)) {
+            audio->slen = ps = d = 0;
+            p = smplbuf;
+            break;
+        }
+    }
+
+    audio->sbeg = p;
+    audio->pos = ps;
+    audio->delta = d;
+    if (audio->mode & 4) {
+        audio->mode = 0;
+    }
 }
 
-void mix_add_ov(struct Audio *audio,int n,S32 *b)
-{
-	//printf("*** mix_add_ov: mix_add_ov\n");
-	register S8 * p = audio->sbeg;
-	register U32 ps=audio->pos;
-	register U32 psreal;
-	int v=audio->vol;
-	U32 d=audio->delta;
-	U32 l=(audio->slen<<14);
+void mix_add_ov(struct Audio *audio, int n, S32 *b) {
+    if (audio->sbeg == (S8 *)&nul || ((audio->mode & 1) == 0) || (audio->slen == 0)) {
+        return;
+    }
 
-	int v1;
-	int v2;
+    if (audio->vol > 0x40) {
+        audio->vol = 0x40;
+    }
 
-	if (v>0x40)v=0x40;
+    if ((audio->mode & 3) == 1) {
+        audio->sbeg = audio->SampleStart;
+        audio->slen = audio->SampleLength;
+        audio->pos = 0;
+        audio->mode |= 2;
+    }
 
-/* This used to have (p==&smplbuf).  Broke with GrandMonsterSlam */
-	if ((p==(S8 *)&nul)||( ((audio->mode)&1)==0 )||(l<0x10000))
-		return;
-	if ((audio->mode&3)==1)
-	{
-		p=audio->sbeg=audio->SampleStart;
-		l=(audio->slen=audio->SampleLength)<<14;
-		ps=0;
-		audio->mode|=2;
-	/*	audio->loop(&audio); */
-	}
-	if (!v)
-	{
-#if 0		/* Will be supported someday... */
-		while(n--){
-			(*b++)+=(p[(ps+=d)>>14]*v);
-			if (ps<l) continue;
-			ps-=l;
-			p=audio->SampleStart;
-			if (((l=audio->SampleLength<<14)<=0x10000) ||
-			    (!audio->loop(audio)) )
-					{
-				ps=l=d=0;
-				p=smplbuf;
-				break;
-			}
-		}
-		return;
-#endif
-	}
-/*
-#   define RESAMPLATION \
-      v1=src[ofs>>FRACTION_BITS];\
-      v2=src[(ofs>>FRACTION_BITS)+1];\
-      *dest++ = v1 + (((v2-v1) * (ofs & FRACTION_MASK)) >> FRACTION_BITS);
+    if (audio->vol == 0) {
+        return;
+    }
 
-*/
-#define FRACTION_BITS 14
-#define INTEGER_MASK (0xFFFFFFFF << FRACTION_BITS)
-#define FRACTION_MASK (~ INTEGER_MASK)
+    register S8 *p = audio->sbeg;
+    register U32 ps = audio->pos;
+    register U32 l = (audio->slen << 14);
+    register U32 d = audio->delta;
 
-	while(n--){
-		/*
-		   register short oo=(ps&0x3FFF);
-		   q=((p[(ps >> 14)+1])*(16384-oo));
-		   (*b++)+=((p[((ps+=d)>>14)])*oo+q)*v>>14; 
-		   */
+    const U32 FRACTION_BITS = 14;
+    const U32 INTEGER_MASK = (0xFFFFFFFF << FRACTION_BITS);
+    const U32 FRACTION_MASK = (~ INTEGER_MASK);
+    
+    while (n--) {
+        U32 psreal = ps >> FRACTION_BITS;
+        S8 v1 = p[psreal];
+        S8 v2 = (psreal + 1 < audio->slen) ? p[psreal + 1] : audio->SampleStart[0];
 
-		/*
-		(*b++)+=(p[ps>>14]*v);
-	        */
-		psreal = ps>>FRACTION_BITS;
-		v1 = p[psreal];
-		if (psreal+1 < audio->slen)
-		{
-			v2 = p[psreal+1];
-		}
-		else
-		{
-			v2 = audio->SampleStart[0];
-			/* fprintf(stderr, "H"); */
-			/* (*b++) += v*v1; */
-		}
-		(*b++) += v*((v1 +
-			      (((signed) ((v2-v1) * (ps & FRACTION_MASK)))
-			       >> FRACTION_BITS)));
-		ps += d;
+        S32 sample = v1 + (((signed) ((v2 - v1) * (ps & FRACTION_MASK))) >> FRACTION_BITS);
+        *b++ += audio->vol * sample;
 
-		if (ps<l) continue;
-		ps-=l;
-		p=audio->SampleStart;
-		if ( ((l=((audio->slen=audio->SampleLength)<<14))<0x10000) ||
-		     (!audio->loop(audio)) )
-				 {
-			audio->slen=ps=d=0;
-			p=smplbuf;
-			break;
-		}
-	}
-	audio->sbeg=p;
-	audio->pos=ps;
-	audio->delta=d;
+        ps += d;
+        if (ps >= l) {
+            ps -= l;
+            p = audio->SampleStart;
+            if (((l = (audio->slen = audio->SampleLength) << 14) < 0x10000) || !audio->loop(audio)) {
+                audio->slen = ps = d = 0;
+                p = smplbuf;
+                break;
+            }
+        }
+    }
 
-	if (audio->mode&4) {
-		(audio->mode=0);
-	}
+    audio->sbeg = p;
+    audio->pos = ps;
+    audio->delta = d;
+
+    if (audio->mode & 4) {
+        audio->mode = 0;
+    }
 }
 	
 void (*mix)(struct Audio *,int,S32 *)=&mix_add;
@@ -545,7 +496,7 @@ int try_to_makeblock() {
         // Calculate the number of samples to process
         num_samples_to_process = calculateSamplesToProcess();
 
-		printf("num_samples_to_process: %d\n", num_samples_to_process);
+		//printf("num_samples_to_process: %d\n", num_samples_to_process);
 
         // Process audio data in blocks
         processAudioData(&num_samples_to_process, &buf_position, &buf_proc_counter, &audio_samples);
@@ -681,40 +632,61 @@ int write_output()
 }
 
 int play_it() {
+    // Initialize synchronization primitives
+    initSyncPrimitives();
 
-    // Initialize a mutex and a condition variable
-    pthread_mutex_init( &lock, NULL );
-    pthread_cond_init( &cond, NULL );
+    // Main audio processing loop
+    processAudio();
 
-    // Print a message before calling the function try_to_makeblock()
-    printf("BEFORE: try_to_makeblock\n");
+    // Finalize and write any remaining output
+    finalizeAudioOutput();
 
-    // Call the function try_to_makeblock()
-    try_to_makeblock();
+    // Wait for any remaining audio data to be processed
+    waitForRemainingAudioData();
 
-    // This section of code is commented out, so it won't execute:
-    //while (try_to_makeblock());
-    // while (try_to_makeblock()>=0)
-    // {
-    //      write_output();
-    // }
+    // Clean up synchronization primitives
+    cleanupSyncPrimitives();
 
-	// Print a message after calling the function try_to_makeblock()
-    printf("AFTER: try_to_makeblock\n");
-
-    // If the variable toOutFile is equal to 0, execute the following block:
-    if (toOutFile == 0) {
-        // While there is available sound data, delay the program by 25 milliseconds
-        while (available_sound_data() > 0) {
-            SDL_Delay(25);
-        }
-    }
-
-    // Destroy the previously initialized mutex and condition variable
-    pthread_mutex_destroy( &lock );
-    pthread_cond_destroy( &cond );
-
-    // Return 0 to indicate successful execution
-    return (0);
+    return 0;
 }
+
+void initSyncPrimitives() {
+    pthread_mutex_init(&lock, NULL);
+    pthread_cond_init(&cond, NULL);
+}
+
+void processAudio() {
+
+	try_to_makeblock();
+
+    // while (try_to_makeblock() >= 0) {
+    //     write_output();
+    // }
+}
+
+void finalizeAudioOutput() {
+    write_output();
+}
+
+void waitForRemainingAudioData() {
+    // Only wait if not outputting to a file
+    if (toOutFile == 0) {
+        // Log start of waiting (optional, for debugging)
+        printf("Waiting for remaining audio data to be processed...\n");
+
+        // Wait until there's no more available sound data
+        while (available_sound_data() > 0) {
+            SDL_Delay(25); // Delay to reduce CPU usage
+        }
+
+        // Log end of waiting (optional, for debugging)
+        printf("Finished waiting for audio data.\n");
+    }
+}
+
+void cleanupSyncPrimitives() {
+    pthread_mutex_destroy(&lock);
+    pthread_cond_destroy(&cond);
+}
+
 
