@@ -24,6 +24,19 @@ heavy CPU load otherwise...) */
 #define HALFBUFSIZE (65536 * 4)
 #define BUFSIZE (131072 * 4)
 
+#define AUDIO_BUFFER_SIZE_SMALL 4096
+#define AUDIO_BUFFER_SIZE_LARGE 8192
+
+#ifdef WORDS_BIGENDIAN
+#define AUDIO_FORMAT_8BIT AUDIO_U8
+#define AUDIO_FORMAT_16BIT AUDIO_S16MSB
+#else
+#define AUDIO_FORMAT_8BIT AUDIO_U8
+#define AUDIO_FORMAT_16BIT AUDIO_S16LSB
+#endif
+
+#define MULTIPLIER_DEFAULT_VALUE 2
+
 union {
  S16 b16[BUFSIZE/2];
  U8 b8[BUFSIZE];
@@ -56,14 +69,19 @@ void conv_u8(S32 *b,int num);
 void conv_s16(S32 *b,int num);
 void mix_add_ov(struct Audio *audio,int n,S32 *b);
 void mix_add(struct Audio *audio,int n,S32 *b);
-void mixit(int n,int b);  
-void mixem(U32 nb,U32 bd);
+void mixit(int audio_samples, int buf_position);  
+void mixem(U32 audio_samples,U32 buf_position);
 void open_sndfile(void);
 void open_snddev(void); 
 int try_to_output(void);
 int play_it(void);
 void TfmxTakedown(void);   
 int try_to_makeblock(void);
+
+S32 calculateSamplesToProcess(void);
+void processAudioData(S32* num_samples_to_process, S32* buf_position, int* buf_proc_counter, int* audio_samples);
+void checkThreadSync(int loops);
+
 void tfmxIrqIn(void);
 
 static int available_sound_data() {
@@ -384,89 +402,81 @@ void mix_add_ov(struct Audio *audio,int n,S32 *b)
 	
 void (*mix)(struct Audio *,int,S32 *)=&mix_add;
 
-void mixit(int n,int b)
-{
-	int x;
-	S32 *y;
-	if (multimode) {
-		if(act[4])mix(&audioData[4],n,&tbuf[b]);
-		if(act[5])mix(&audioData[5],n,&tbuf[b]);
-		if(act[6])mix(&audioData[6],n,&tbuf[b]);
-		if(act[7])mix(&audioData[7],n,&tbuf[b]);
-		y=&tbuf[HALFBUFSIZE+b];
-		for (x=0;x<n;x++,y++)
-			*y=(*y>16383)?16383:
-			   (*y<-16383)?-16383:*y;
-	} else {
-		if(act[3])mix(&audioData[3],n,&tbuf[b]);
-	}
-	if(act[0])mix(&audioData[0],n,&tbuf[b]);
-	if(act[1])mix(&audioData[1],n,&tbuf[HALFBUFSIZE+b]);
-	if(act[2])mix(&audioData[2],n,&tbuf[HALFBUFSIZE+b]);
+void mixit(int audio_samples, int buf_position) {
+    int loop_counter;
+    S32 *pointer_position;
+
+    // Process multimode audio mixing
+    if (multimode) {
+        for (int channel = 4; channel <= 7; channel++) {
+            if (act[channel]) {
+                mix(&audioData[channel], audio_samples, &tbuf[buf_position]);
+            }
+        }
+
+        pointer_position = &tbuf[HALFBUFSIZE + buf_position];
+        for (loop_counter = 0; loop_counter < audio_samples; loop_counter++, pointer_position++) {
+            *pointer_position = (*pointer_position > 16383) ? 16383 :
+                                (*pointer_position < -16383) ? -16383 : *pointer_position;
+        }
+    } else {
+        if (act[3]) {
+            mix(&audioData[3], audio_samples, &tbuf[buf_position]);
+        }
+    }
+
+    // Process non-multimode audio mixing
+    for (int channel = 0; channel < 3; channel++) {
+        if (act[channel]) {
+            mix(&audioData[channel], audio_samples, &tbuf[HALFBUFSIZE * (channel > 0) + buf_position]);
+        }
+    }
 }
 
-void mixem(U32 nb,U32 bd)
+void mixem(U32 audio_samples, U32 buf_position)
 {
 	if (over==-1) {
 		mix=&mix_add_ov;
 	 } else {
 		mix=&mix_add;
 	 }
-	mixit(nb,bd);
+	mixit(audio_samples, buf_position);
 }
 
-void open_snddev()
-{
-	printf("*** open_snddev: open_snddev\n");
-
+void open_snddev() {
     SDL_AudioSpec wanted;
-	
-	multiplier=2;
 
-	if (force8) {
-		conv=&conv_u8;
-	}
+	// Configure the audio conversion method
+    if (force8) {
+        conv = &conv_u8;
+    }
 
-	blocksize=HALFBUFSIZE;
+	// Set audio specifications
+    wanted.freq = outRate;
+    wanted.format = force8 ? AUDIO_FORMAT_8BIT : AUDIO_FORMAT_16BIT;
+    wanted.channels = stereo ? 2 : 1;
+    wanted.samples = force8 ? AUDIO_BUFFER_SIZE_SMALL : AUDIO_BUFFER_SIZE_LARGE;
+    wanted.callback = fill_audio;
+    wanted.userdata = NULL;
 
-	/* SDL open device here */
+	// Attempt to open the audio device
+    if (SDL_OpenAudio(&wanted, NULL) < 0) {
+        fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
+        _exit(-1);
+    }
+    SDL_PauseAudio(0);
 
-	/* Set the audio format */
-	wanted.freq = outRate;
+	// Calculate the multiplier and blocksize
+    multiplier = MULTIPLIER_DEFAULT_VALUE * (stereo ? 2 : 1) / (force8 ? 2 : 1);
+    blocksize = HALFBUFSIZE / (multiplier * (stereo ? 2 : 4));
 
-#ifdef WORDS_BIGENDIAN
-	wanted.format = (force8?AUDIO_U8:AUDIO_S16MSB);
-#else
-	wanted.format = (force8?AUDIO_U8:AUDIO_S16LSB);
-#endif
-	wanted.channels = (stereo?2:1);
-	wanted.samples = (force8?4096:8192); /* as big as it gets */
-	wanted.callback = fill_audio;
-	wanted.userdata = NULL;
-
-	if ( SDL_OpenAudio(&wanted, NULL) < 0 )
-	{
-	    fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
-	    /* */
-		_exit(-1);
-	}
-	SDL_PauseAudio(0);
-
-	multiplier*=(stereo?2:1);
-	multiplier/=(force8?2:1);
-
-	if (stereo) {
-		blocksize=blocksize/multiplier/2;
-	} else {
-		blocksize=blocksize/multiplier/4;
-	}
-
-	if (blocksize>HALFBUFSIZE) {
-		fprintf(stderr,"Block size %d not supported",blocksize);
-		_exit(1);
-	}
-	return;
+	// Check for block size support
+    if (blocksize > HALFBUFSIZE) {
+        fprintf(stderr, "Block size %d not supported", blocksize);
+        _exit(1);
+    }
 }
+
 
 void open_sndfile()
 {
@@ -507,148 +517,130 @@ void open_sndfile()
 }
 
 
-void TfmxTakedown()
-{
-	//printf("*** TfmxTakedown: TfmxTakedown\n");
-	if (toOutFile==1)
-	{
+void TfmxTakedown() {
+	if (toOutFile==1) {
 		close(sndhdl);
 	}
+
 	free(smplbuf);
 
-	if (toOutFile==0)
-	{
+	if (toOutFile==0) {
 		SDL_CloseAudio();
 		SDL_Quit();
 	}
 }
 
-
-int try_to_makeblock()
-{
-	printf("*** try_to_makeblock: try_to_makeblock\n");
-	static S32 nb = 0, bd = 0; /* num bytes, bytes done */
-	int n, r = 0;
+int try_to_makeblock() {
+    static const int threshold = BUFSIZE / 2;
+    static S32 num_samples_to_process = 0, buf_position = 0;
+    int audio_samples, buf_proc_counter = 0;
     int loops = 0;
 
-	// Buffer Threshold
-	static int threshold = BUFSIZE / 2;
+    printf("*** try_to_makeblock: try_to_makeblock\n");
 
-    while ( available_sound_data() < threshold && trackManager.PlayerEnable ) {
+    while (available_sound_data() < threshold && trackManager.PlayerEnable) {
+        loops++;
+        tfmxIrqIn();
 
-		//printf("While: Available sound data = %d (threshold: %d), Player Enable Status = %d\n", available_sound_data(), threshold, trackManager.PlayerEnable);
+        // Calculate the number of samples to process
+        num_samples_to_process = calculateSamplesToProcess();
 
-        // Increment the loop counter
-		loops++;
+		printf("num_samples_to_process: %d\n", num_samples_to_process);
 
-		// Call a function to handle an interrupt or periodic update in the context of TFMX playback
-		tfmxIrqIn();
+        // Process audio data in blocks
+        processAudioData(&num_samples_to_process, &buf_position, &buf_proc_counter, &audio_samples);
 
-		// Calculate the number of eClocks for half the output rate
-		nb = (eClocks * (outRate >> 1));
-
-		// Add the remainder of nb divided by 357955 to eRem
-		eRem += (nb % 357955);
-
-		// Divide nb by 357955 to get a normalized value
-		nb /= 357955;
-
-		// Check if eRem exceeded 357955, adjust nb and eRem accordingly
-		if (eRem > 357955) {
-			nb++;
-			eRem -= 357955;
-		}
-
-		// Process blocks of audio data until all nb blocks are processed
-		while (nb > 0) {
-			// Calculate the number of blocks to process in this iteration
-			n = blocksize - bd;
-			if (n > nb) {
-				n = nb;
-			}
-
-			// Mix the specified number of audio blocks
-			mixem(n, bd);
-			printf("mixem: Mixed %d bytes at position %d\n", n, bd);
-
-			// Update the total number of bytes processed and the buffer position
-			bytes += n;
-			bd += n;
-			nb -= n;
-
-			// Check if the buffer is full or the player is disabled
-			if (((unsigned int)bd) == blocksize || !trackManager.PlayerEnable) {
-
-				// Convert the processed audio data for output
-				conv(&tbuf[0], bd);
-				printf("Converted audio data of %u bytes\n", bd);
-
-				// Reset the buffer position for the next batch of audio data
-				bd = 0;
-
-				// Increment the counter for the number of times the buffer has been processed
-				r++;
-			}
-		}
-	}
-
-    if ( ! loops && toOutFile == 0 ) {
-
-		printf("makeblock toOutFile\n");
-
-        pthread_mutex_lock( &lock );
-        if ( available_sound_data() >= BUFSIZE / 2 ) {
-            pthread_cond_wait( &cond, &lock );
-        }
-        pthread_mutex_unlock( &lock );
+        checkThreadSync(loops);
     }
-    
-	return((trackManager.PlayerEnable)?r:-1);
+
+    return (trackManager.PlayerEnable ? buf_proc_counter : -1);
 }
 
-// Callback function to fill the audio buffer for playback
-void fill_audio(void *udata, Uint8 *stream, int len) {
-    // printf("*** fill_audio: fill_audio\n");  // Logging statement for debugging
+// Helper function to calculate the number of samples to process
+S32 calculateSamplesToProcess() {
+    S32 processSamples = (eClocks * (outRate >> 1));
+    eRem += (processSamples % 357955);
+    processSamples /= 357955;
 
-    // Get the amount of available sound data
-    int avail = available_sound_data();
-
-    // If available data is less than requested length, fill the remainder with silence
-    if (avail < len) {
-        SDL_memset(stream + avail, 0, len - avail);  // Fill with zeros (silence)
-        len = avail;  // Adjust the length to the available data
+    if (eRem > 357955) {
+        processSamples++;
+        eRem -= 357955;
     }
 
-    // Initialize variables to track the total length to write and the amount written
-    int total_len = len;
-    int written = 0;
+    return processSamples;
+}
 
-    // Loop to handle audio data writing, especially when reaching the ring buffer boundary
+// Helper function to process the audio data
+void processAudioData(S32* num_samples_to_process, S32* buf_position, int* buf_proc_counter, int* audio_samples) {
+
+    while (*num_samples_to_process > 0) {
+        *audio_samples = blocksize - *buf_position;
+        if (*audio_samples > *num_samples_to_process) {
+            *audio_samples = *num_samples_to_process;
+        }
+
+        mixem(*audio_samples, *buf_position);
+        // printf("mixem: Mixed %d bytes at position %d\n", *audio_samples, *buf_position);
+
+        bytes += *audio_samples;
+        *buf_position += *audio_samples;
+        *num_samples_to_process -= *audio_samples;
+
+        if (((unsigned int)*buf_position) == blocksize || !trackManager.PlayerEnable) {
+            conv(&tbuf[0], *buf_position);
+            printf("Converted audio data of %u bytes\n", *buf_position);
+            *buf_position = 0;
+            (*buf_proc_counter)++;
+        }
+    }
+}
+
+// Helper function for thread synchronization
+void checkThreadSync(int loops) {
+    if (!loops && toOutFile == 0) {
+        printf("makeblock toOutFile\n");
+
+        pthread_mutex_lock(&lock);
+        if (available_sound_data() >= BUFSIZE / 2) {
+            pthread_cond_wait(&cond, &lock);
+        }
+        pthread_mutex_unlock(&lock);
+    }
+}
+
+// SDL Callback function to fill the audio buffer for playback
+void fill_audio(void *udata, Uint8 *stream, int len) {
+
+    // Variables for buffer management
+    int avail = available_sound_data(); // Amount of available sound data
+    int total_len = len;                // Total length to write
+    int written = 0;                    // Amount of data written so far
+
+    // Fill with silence if available data is less than requested length
+    if (avail < len) {
+        SDL_memset(stream + avail, 0, len - avail); // Fill remainder with zeros (silence)
+        len = avail; // Adjust the length to the available data
+    }
+
+    // Handle audio data writing, considering the ring buffer boundary
     while (total_len > 0) {
-        // If adding len to btail exceeds the buffer size, adjust len to fit the buffer
+        // Adjust len to fit the buffer if adding len to btail exceeds BUFSIZE
         if (btail + len > BUFSIZE) {
             len = BUFSIZE - btail;
         }
 
-        // Mix the audio data from the buffer into the stream
+        // Mix audio data from the buffer into the stream
         SDL_MixAudio(stream + written, &buf.b8[btail], len, SDL_MIX_MAXVOLUME);
-		printf("fill_audio: Mixed %d bytes from buffer position %d\n", len, btail);
+        printf("fill_audio: Mixed %d bytes from buffer position %d\n", len, btail);
 
-        // Update the buffer tail position, wrapping around if necessary
+        // Update buffer tail position, wrapping around at the buffer boundary
         btail = (btail + len) % BUFSIZE;
-        // Update the number of bytes written
-        written += len;
-
-        // Decrease the remaining length to be written
-        total_len -= len;
-
-        // Set len to the remaining length for the next iteration
-        len = total_len;
+        written += len; // Update the number of bytes written
+        total_len -= len; // Decrease the remaining length to be written
+        len = total_len; // Update len for the next iteration
     }
-    
-    // Note: udata is not used in this function, but it's required by SDL's callback interface
 
-    // Signal a condition variable (used for synchronization with other threads)
+    // Signal a condition variable, used for synchronization with other threads
     pthread_cond_signal(&cond);
 }
 
@@ -700,15 +692,15 @@ int play_it() {
     // Call the function try_to_makeblock()
     try_to_makeblock();
 
-    // Print a message after calling the function try_to_makeblock()
-    printf("AFTER: try_to_makeblock\n");
-
     // This section of code is commented out, so it won't execute:
-    // while (try_to_makeblock());
+    //while (try_to_makeblock());
     // while (try_to_makeblock()>=0)
     // {
-    //     write_output();
+    //      write_output();
     // }
+
+	// Print a message after calling the function try_to_makeblock()
+    printf("AFTER: try_to_makeblock\n");
 
     // If the variable toOutFile is equal to 0, execute the following block:
     if (toOutFile == 0) {

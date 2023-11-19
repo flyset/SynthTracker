@@ -809,7 +809,7 @@ void GetTrackStep()
 	}
 }
 
-int DoTrack(struct Pattern *p)
+int DoTrack(struct Pattern *pattern)
 {
 	//printf("*** DoTrack: ---- ");
 	const char *n1="CCDDEFFGGAAB",*n2=" # #  # # # ";
@@ -881,30 +881,30 @@ int DoTrack(struct Pattern *p)
 	(char *)"SID stop    xx....   flag (1=clear all)"
 	};
 	
-	if (p->PNum==0xFE)
+	if (pattern->PNum==0xFE)
 	{
-		p->PNum++;
-		ChannelOff(p->PXpose);
-		//printf("%04x: --- ---- -- | ", p->PNum);
+		pattern->PNum++;
+		ChannelOff(pattern->PXpose);
+		//printf("%04x: --- ---- -- | ", pattern->PNum);
 		return(0);
 	}
-	if (!p->PAddr) {
-		//printf("%04x: --- ---- -- | ", p->PNum);
+	if (!pattern->PAddr) {
+		//printf("%04x: --- ---- -- | ", pattern->PNum);
 		return(0);
 	}
-	if (p->PNum>=0x90) {
-		//printf("%04x: --- ---- -- | ", p->PNum);
+	if (pattern->PNum>=0x90) {
+		//printf("%04x: --- ---- -- | ", pattern->PNum);
 		return(0);
 	}
-	if (p->PWait--) {
-		//printf("%04x: --- ---- -- | ", p->PNum);
+	if (pattern->PWait--) {
+		//printf("%04x: --- ---- -- | ", pattern->PNum);
 		return(0);
 	}
 
 	while(1)
 	{
 		loop:
-		x.l=ntohl(editbuf[p->PAddr+p->PStep++]);
+		x.l=ntohl(editbuf[pattern->PAddr+pattern->PStep++]);
 		t=x.b.b0;
 
 		//a.l=ntohl(editbuf[x++]);
@@ -937,10 +937,10 @@ int DoTrack(struct Pattern *p)
 			fflush(stdout);
 			if ((t&0xC0)==0x80)
 			{
-				p->PWait=x.b.b3;
+				pattern->PWait=x.b.b3;
 				x.b.b3=0;
 			}
-			x.b.b0=((t+p->PXpose)&0x3F);
+			x.b.b0=((t+pattern->PXpose)&0x3F);
 			
 			if ((t&0xC0)==0xC0) {
 				x.b.b0|=0xC0;
@@ -955,7 +955,7 @@ int DoTrack(struct Pattern *p)
 			n[1]=n2[zz];
 
 			if ((t&0xC0)==0x80) {
-				//printf("%04x: %s ---- -- | ", p->PNum, n);
+				//printf("%04x: %s ---- -- | ", pattern->PNum, n);
 				return(0);
 			}
 			goto loop;
@@ -965,70 +965,70 @@ int DoTrack(struct Pattern *p)
 		switch (t&0xF)
 		{
 		case 15: /* NOP */
-			//printf("%04x: --- NOP- 15 | ", p->PNum);
+			//printf("%04x: --- NOP- 15 | ", pattern->PNum);
 			break;
 		case 0:	/* End */
-			//printf("%04x: --- END- 00 | ", p->PNum);
-			p->PNum=0xFF;
+			//printf("%04x: --- END- 00 | ", pattern->PNum);
+			pattern->PNum=0xFF;
 			patternBlockData.CurrPos=(patternBlockData.CurrPos==patternBlockData.LastPos)?
 				    patternBlockData.FirstPos:patternBlockData.CurrPos+1;
 			GetTrackStep();
 			return(1);
 		case 1:
-			if (!(p->PLoop))
+			if (!(pattern->PLoop))
 			{
-				p->PLoop=0xFFFF;
-				//printf("%04x: --- %04x 01 | ", p->PNum, t);
+				pattern->PLoop=0xFFFF;
+				//printf("%04x: --- %04x 01 | ", pattern->PNum, t);
 				break;
 			}
-			else if (p->PLoop==0xFFFF) /* FF --'ed */
+			else if (pattern->PLoop==0xFFFF) /* FF --'ed */
 			{
-				p->PLoop=x.b.b1;
+				pattern->PLoop=x.b.b1;
 			}
-			p->PLoop--;
-			p->PStep=x.w.w1;
+			pattern->PLoop--;
+			pattern->PStep=x.w.w1;
 			break;
 		case 8: /* GsPt */
-			p->PRoAddr=p->PAddr;
-			p->PRoStep=p->PStep;
+			pattern->PRoAddr=pattern->PAddr;
+			pattern->PRoStep=pattern->PStep;
 			/* fall through to... */
 		case 2: /* Cont */
-			//printf("%04x: --- %04x 02 | ", p->PNum, t);
-			p->PAddr=patterns[x.b.b1];
-			p->PStep=x.w.w1;
+			//printf("%04x: --- %04x 02 | ", pattern->PNum, t);
+			pattern->PAddr=patterns[x.b.b1];
+			pattern->PStep=x.w.w1;
 			break;
 		case 3: /* Wait */
-			//printf("%04x: --- Wait 03 | ", p->PNum);
-			p->PWait=x.b.b1;
+			//printf("%04x: --- Wait 03 | ", pattern->PNum);
+			pattern->PWait=x.b.b1;
 			return(0);
 		case 14: /* StCu */
 			trackManager.PlayPattFlag=0;
 		case 4: /* Stop */
-			//printf("%04x: --- Break 04\n", p->PNum);
-			p->PNum=0xFF;
+			//printf("%04x: --- Break 04\n", pattern->PNum);
+			pattern->PNum=0xFF;
 			return(0);
 		case 5: /* Kup^ */
 		case 6: /* Vibr */
 		case 7: /* Enve */
 		case 12: /* Lock */
-			//printf("%04x: --- %04x 12 | ", p->PNum, t);
+			//printf("%04x: --- %04x 12 | ", pattern->PNum, t);
 			NotePort(x.l);
 			break;
 		case 9: /* RoPt */
-			//printf("%04x: --- RoPt 09 | ", p->PNum);
-			p->PAddr=p->PRoAddr;
-			p->PStep=p->PRoStep;
+			//printf("%04x: --- RoPt 09 | ", pattern->PNum);
+			pattern->PAddr=pattern->PRoAddr;
+			pattern->PStep=pattern->PRoStep;
 			break;
 		case 10: /* Fade */
-			//printf("%04x: --- %04x 10 | ", p->PNum, t);
+			//printf("%04x: --- %04x 10 | ", pattern->PNum, t);
 			DoFade(x.b.b1,x.b.b3);
 			break;
 		case 13: /* Cue */
-			//printf("%04x: --- %04x 13 | ", p->PNum, t);
+			//printf("%04x: --- %04x 13 | ", pattern->PNum, t);
 			idb.Cue[x.b.b1&0x03]=x.w.w1;
 			break;
 		case 11: /* PPat */
-			//printf("%04x: --- %04x 11 | ", p->PNum, t);
+			//printf("%04x: --- %04x 11 | ", pattern->PNum, t);
 			t=x.b.b2&0x07;
 			patternBlockData.p[t].PNum=x.b.b1;
 			patternBlockData.p[t].PAddr=patterns[x.b.b1];
@@ -1041,48 +1041,40 @@ int DoTrack(struct Pattern *p)
 	}
 }
 
-void DoTracks()
-{
-	// printf("*** DoTracks: Doing Tracks\n");
+void DoTracks() {
 	int x;
 
 	jiffies++;
-	if (!trackManager.SpeedCnt--)
-	{
+	if (!trackManager.SpeedCnt--) {
 		trackManager.SpeedCnt=patternBlockData.Prescale;
+
 		/* sortof fix Oops Up tempo */
-		if (oopsUpHack)
-		{
+		if (oopsUpHack) {
 		        trackManager.SpeedCnt=5;
 		}
 
-		//printf("Patterns: ");
+		printf("\nPatterns: ");
+		for (x=0;x<8;x++) {
 
-		for (x=0;x<8;x++)
-		{
-			//DEBUG(3)
+			printf("%01x ",x);
 
-			//printf("%01x ",x);
-
-			if ( DoTrack(&patternBlockData.p[x]) )
-			{
+			if ( DoTrack(&patternBlockData.p[x]) ) {
 				x=-1;
 				continue;
 			}
 		}
 
-		// puts("");
-
-		//printf("\n-------------------------------------------\n");
+		puts("");
+		printf("-------------------------------------------\n");
 
 	}
 }
 
-void tfmxIrqIn()
-{
+void tfmxIrqIn() {
 	if (!trackManager.PlayerEnable) {
 		return;
 	}
+
 	DoAllMacros();
 	if (trackManager.CurrSong>=0) {
 		DoTracks();
