@@ -1043,8 +1043,8 @@ int DoTrack(struct Pattern *pattern)
 
 void DoTracks() {
 	int x;
-
 	jiffies++;
+	
 	if (!trackManager.SpeedCnt--) {
 		trackManager.SpeedCnt=patternBlockData.Prescale;
 
@@ -1053,20 +1053,12 @@ void DoTracks() {
 		        trackManager.SpeedCnt=5;
 		}
 
-		printf("\nPatterns: ");
 		for (x=0;x<8;x++) {
-
-			printf("%01x ",x);
-
 			if ( DoTrack(&patternBlockData.p[x]) ) {
 				x=-1;
 				continue;
 			}
 		}
-
-		puts("");
-		printf("-------------------------------------------\n");
-
 	}
 }
 

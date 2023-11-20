@@ -27,6 +27,7 @@ typedef char S8;
 typedef union
 {
 	U32 l;
+	
 /* byteorder... */
 #ifdef WORDS_BIGENDIAN
 	struct {U16 w0,w1;} w;

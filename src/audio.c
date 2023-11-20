@@ -487,16 +487,12 @@ int try_to_makeblock() {
     int audio_samples, buf_proc_counter = 0;
     int loops = 0;
 
-    printf("*** try_to_makeblock: try_to_makeblock\n");
-
     while (available_sound_data() < threshold && trackManager.PlayerEnable) {
         loops++;
         tfmxIrqIn();
 
         // Calculate the number of samples to process
         num_samples_to_process = calculateSamplesToProcess();
-
-		//printf("num_samples_to_process: %d\n", num_samples_to_process);
 
         // Process audio data in blocks
         processAudioData(&num_samples_to_process, &buf_position, &buf_proc_counter, &audio_samples);
@@ -531,7 +527,6 @@ void processAudioData(S32* num_samples_to_process, S32* buf_position, int* buf_p
         }
 
         mixem(*audio_samples, *buf_position);
-        // printf("mixem: Mixed %d bytes at position %d\n", *audio_samples, *buf_position);
 
         bytes += *audio_samples;
         *buf_position += *audio_samples;
@@ -539,7 +534,6 @@ void processAudioData(S32* num_samples_to_process, S32* buf_position, int* buf_p
 
         if (((unsigned int)*buf_position) == blocksize || !trackManager.PlayerEnable) {
             conv(&tbuf[0], *buf_position);
-            printf("Converted audio data of %u bytes\n", *buf_position);
             *buf_position = 0;
             (*buf_proc_counter)++;
         }
@@ -549,7 +543,6 @@ void processAudioData(S32* num_samples_to_process, S32* buf_position, int* buf_p
 // Helper function for thread synchronization
 void checkThreadSync(int loops) {
     if (!loops && toOutFile == 0) {
-        printf("makeblock toOutFile\n");
 
         pthread_mutex_lock(&lock);
         if (available_sound_data() >= BUFSIZE / 2) {
@@ -582,7 +575,6 @@ void fill_audio(void *udata, Uint8 *stream, int len) {
 
         // Mix audio data from the buffer into the stream
         SDL_MixAudio(stream + written, &buf.b8[btail], len, SDL_MIX_MAXVOLUME);
-        printf("fill_audio: Mixed %d bytes from buffer position %d\n", len, btail);
 
         // Update buffer tail position, wrapping around at the buffer boundary
         btail = (btail + len) % BUFSIZE;
@@ -656,12 +648,9 @@ void initSyncPrimitives() {
 }
 
 void processAudio() {
-
-	try_to_makeblock();
-
-    // while (try_to_makeblock() >= 0) {
-    //     write_output();
-    // }
+    while (try_to_makeblock() >= 0) {
+        write_output();
+    }
 }
 
 void finalizeAudioOutput() {
@@ -671,16 +660,11 @@ void finalizeAudioOutput() {
 void waitForRemainingAudioData() {
     // Only wait if not outputting to a file
     if (toOutFile == 0) {
-        // Log start of waiting (optional, for debugging)
-        printf("Waiting for remaining audio data to be processed...\n");
-
+        
         // Wait until there's no more available sound data
         while (available_sound_data() > 0) {
             SDL_Delay(25); // Delay to reduce CPU usage
         }
-
-        // Log end of waiting (optional, for debugging)
-        printf("Finished waiting for audio data.\n");
     }
 }
 
