@@ -1,9 +1,14 @@
-# tfmx-play/SDL 1.1.7
+# TFMX.cpp
 
-A **TFMX music player** for Linux, macOS, and other platforms using **SDL 1.1.7**.
+A **modern C++ port and refactor** of the legacy **TFMX music player**, originally developed for SDL 1.1.7.
 
 ## Overview
-tfmx-play is a **free and open-source** music player for TFMX (Turrican FMX) modules, originally developed by Jonathan H. Pickard and David Banz. This version supports **stereo blending** and **low-pass filtering** for improved audio quality.
+This project aims to **port and refactor** the legacy **TFMX player** from C to **C++**, while adding a **modern UI** to enhance usability. The goal is to maintain compatibility with existing TFMX modules while improving performance, maintainability, and user experience.
+
+### Current Status
+- **Porting progress**: Initial refactoring and setup for C++ compatibility.
+- **UI Integration**: Planning and design for a modern user interface (e.g., Qt, ImGui, or SDL2-based).
+- **Legacy Compatibility**: Retaining support for legacy TFMX modules and SDL 1.1.7 features like stereo blending and low-pass filtering.
 
 ## Features
 - Plays **most TFMX modules**, including:
