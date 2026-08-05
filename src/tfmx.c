@@ -7,6 +7,7 @@
 #include "SDL.h"
 #include "tfmxsong.h"
 #include "player.h"
+#include "audio.h"
 
 /* external functions */
 void open_sndfile();
@@ -834,6 +835,9 @@ pattern and macro data. The routines that use the data do it for themselves.*/
 		0,                                      // loopcnt: Loop counter
 		NULL                                    // channel: Pointer to struct Channel (channel or track data)
 	};
+
+	// Set the SIGINT (Ctrl-C) signal handler
+    signal(SIGINT, inthand);
 
 	play_it(); // do not play
 	TfmxTakedown();

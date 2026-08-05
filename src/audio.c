@@ -8,6 +8,7 @@
 
 #include "SDL.h"
 #include "player.h"
+#include "audio.h"
 
 void tfmxIrqIn();
 
@@ -47,10 +48,9 @@ volatile int bhead=0,btail=0;
 S32 tbuf[HALFBUFSIZE*2];
 
 extern int jiffies;
+
 int bytes=0,bytes2=0;
-
 U32 blocksize=0,multiplier=1,stereo=0;
-
 int sndhdl=0;
 int force8=0;
 int isfile=0;
@@ -587,9 +587,7 @@ void fill_audio(void *udata, Uint8 *stream, int len) {
     pthread_cond_signal(&cond);
 }
 
-int write_output()
-{
-	//printf("*** write_output: write_output\n");
+int write_output() {
 	int x;
 	//int n=blocksize*multiplier;
 
@@ -647,8 +645,15 @@ void initSyncPrimitives() {
     pthread_cond_init(&cond, NULL);
 }
 
+volatile sig_atomic_t stop = 0;
+
+void inthand(int signum) {
+    printf("BREAK\n");
+    stop = 1;
+}
+
 void processAudio() {
-    while (try_to_makeblock() >= 0) {
+    while (!stop && try_to_makeblock() >= 0) {
         write_output();
     }
 }
