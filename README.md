@@ -63,7 +63,7 @@ This project aims to **port and refactor** the legacy **TFMX player** from C to 
 Run `-h` for usage instructions and feature details.
 
 ## License
-tfmx-play is released under the **GPL**. See `COPYING` for details.
+This project is released under the **GNU GPLv3**. See `LICENSE` for details.
 
 ## Contributing
 Want to help? Contact **Neochrome** at [neko@netcologne.de](mailto:neko@netcologne.de).
