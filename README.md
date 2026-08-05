@@ -66,7 +66,7 @@ Run `-h` for usage instructions and feature details.
 This project is released under the **GNU GPLv3**. See `LICENSE` for details.
 
 ## Contributing
-Want to help? Contact **Neochrome** at [neko@netcologne.de](mailto:neko@netcologne.de).
+Want to help? Fork the repository and submit a pull request. For questions or legal clarifications, contact **Neochrome** at [neko@netcologne.de](mailto:neko@netcologne.de).
 
 ## Links
 - Latest updates: [http://darkstar.tabu.stw-bonn.de/~neo/audio.html](http://darkstar.tabu.stw-bonn.de/~neo/audio.html)
