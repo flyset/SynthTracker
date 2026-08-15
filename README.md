@@ -1,6 +1,6 @@
 # TFMX.cpp
 
-A **modern C++ port and refactor** of the legacy **TFMX music player**, originally developed for SDL 1.1.7.
+A **modern C++ port and refactor** of the legacy **TFMX music player**, with SDL 1.1.7 retained as historical legacy context.
 
 ## Overview
 This project aims to **port and refactor** the legacy **TFMX player** from C to **C++**, while adding a **modern UI** to enhance usability. The goal is to maintain compatibility with existing TFMX modules while improving performance, maintainability, and user experience.
@@ -8,7 +8,7 @@ This project aims to **port and refactor** the legacy **TFMX player** from C to 
 ### Current Status
 - **Porting progress**: Initial refactoring and setup for C++ compatibility.
 - **UI Integration**: Planning and design for a modern user interface (e.g., Qt, ImGui, or SDL2-based).
-- **Legacy Compatibility**: Retaining support for legacy TFMX modules and SDL 1.1.7 features like stereo blending and low-pass filtering.
+- **Legacy Compatibility**: Retaining support for legacy TFMX modules and the SDL 1.2-era audio features currently used by the engine, including stereo blending and low-pass filtering.
 
 ## Features
 - Plays **most TFMX modules**, including:
@@ -25,16 +25,9 @@ This project aims to **port and refactor** the legacy **TFMX player** from C to 
 
 ## Build Instructions
 ### Dependencies
-- **SDL 1.1.7**: Required for building the project. Install it using:
-  ```bash
-  brew install sdl11  # macOS (Homebrew)
-  ```
-  If SDL 1.1.7 is unavailable, you may need to compile it from source.
+- **Phase 1 validation baseline**: C23 on macOS with Clang and Linux with GCC, against the SDL 1.2-era API surface currently used by the legacy engine. SDL 1.1.7 is historical context, not an asserted current build dependency.
 
-- **CMake 3.10+**: Required for configuring the build. Install it using:
-  ```bash
-  brew install cmake  # macOS (Homebrew)
-  ```
+- **CMake 3.10+**: Required for configuring the build.
 
 ### Steps
 1. Create a build directory and navigate into it:
@@ -57,7 +50,7 @@ This project aims to **port and refactor** the legacy **TFMX player** from C to 
    ./tfmx
    ```
 
-> **Note**: This project is **legacy software** and relies on **SDL 1.1.7**, which may not be readily available on modern systems. If you encounter issues, consider compiling SDL 1.1.7 from source.
+> **Note**: This project is **legacy software**. The current Phase 1 boundary targets the SDL 1.2-era API surface used by the engine; SDL 1.1.7 describes the historical legacy context only.
 
 ## Usage
 Run `-h` for usage instructions and feature details.

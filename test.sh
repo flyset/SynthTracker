@@ -14,6 +14,5 @@
 # "-x           export to XRNS XML\n"
 # "-~           debug mode (commands pp and pm)\n"
 
-#./tfmx -i -p 2 "/Users/kosta/Music/Amiga Music/TFMX/Turrican2/Turrican2-LVL1.TFX"
-./tfmx -~ "/Users/kosta/Music/Amiga Music/TFMX/Turrican2/Turrican2-LVL1.TFX"
-
+./tfmx -i -p 2 "/Users/kosta/Music/Amiga Music/TFMX/Turrican2/Turrican2-LVL1.TFX"
+#./tfmx -~ "/Users/kosta/Music/Amiga Music/TFMX/Turrican2/Turrican2-LVL1.TFX"

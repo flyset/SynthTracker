@@ -10,3 +10,7 @@ tfmx
 # Visual Studio Code
 .vscode/
 tfmx.code-workspace
+
+# === OpenCode Specific ===
+.opencode/
+opencode.json
