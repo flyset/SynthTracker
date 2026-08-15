@@ -14,7 +14,6 @@ execute_process(COMMAND ${SDL_CONFIG} --libs OUTPUT_VARIABLE SDL_LIBS OUTPUT_STR
 
 # Set compiler flags obtained from sdl-config
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SDL_CFLAGS}")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${SDL_LIBS}")
 
 
 # OpenSSL Configuration (if required)

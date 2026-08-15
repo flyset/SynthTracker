@@ -38,8 +38,10 @@ legacy context, not an asserted current build dependency.
 
 The approved Phase 1 target is a C23 baseline validated on macOS with Clang,
 while preserving the SDL 1.2-era API surface currently used by the legacy
-engine. Linux/GCC validation is deferred. The current CMake configuration
-uses C23 and the macOS/Clang baseline has been validated.
+engine. macOS is the current and only platform scope; other-platform
+compatibility and validation are outside the current project scope. Support
+for another platform requires a new explicit roadmap decision. The current
+CMake configuration uses C23 and the macOS/Clang baseline has been validated.
 
 ## Porting approach
 

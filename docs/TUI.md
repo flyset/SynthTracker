@@ -9,9 +9,11 @@ has been done yet; this document records only the decisions made so far.
 
 ## Terminal platform boundary
 
-Decision: the TUI targets current terminal emulators on macOS, Linux, and
-Windows. Capabilities specific to macOS or to iTerm2 are excluded from the
-baseline; the TUI must not depend on them.
+Decision: the TUI targets current terminal emulators on macOS only. Linux,
+Windows, and other platforms are outside the current project scope; support
+for another platform requires a new explicit roadmap decision. Capabilities
+specific to macOS or to iTerm2 are excluded from the baseline; the TUI must not
+depend on them.
 
 ## Capability policy
 

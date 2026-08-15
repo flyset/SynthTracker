@@ -9,6 +9,7 @@ This project aims to **port and refactor** the legacy **TFMX player** from C to 
 - **Porting progress**: Initial refactoring and setup for C++ compatibility.
 - **UI Integration**: Planning and design for a modern user interface (e.g., Qt, ImGui, or SDL2-based).
 - **Legacy Compatibility**: Retaining support for legacy TFMX modules and the SDL 1.2-era audio features currently used by the engine, including stereo blending and low-pass filtering.
+- **Platform scope**: macOS only. Linux and other platform support are outside the current project scope; adding a platform requires a new explicit roadmap decision.
 
 ## Features
 - Plays **most TFMX modules**, including:
@@ -16,16 +17,16 @@ This project aims to **port and refactor** the legacy **TFMX player** from C to 
   - MUDS, R-Type Theme, Z-Out, The Oath, and more
 - **Stereo blending** (adjustable for headphone users)
 - **Low-pass filter** (high, medium, low cutoff frequencies)
-- **Portable** (Linux, macOS, and other SDL-supported platforms)
+- **macOS support** (the current platform scope)
 
 ## Known Issues
 - Some TFMX files may not play correctly.
-- A specific version of the **Z-Out theme** causes a segfault on macOS (fixed in Linux).
+- A specific version of the **Z-Out theme** causes a segfault on macOS. Historically, this was reported as fixed in Linux; Linux is outside the current project scope.
 - Performance is slightly lower than the legacy OSS implementation but acceptable on modern hardware.
 
 ## Build Instructions
 ### Dependencies
-- **Phase 1 validation baseline**: C23 on macOS with Clang, against the SDL 1.2-era API surface currently used by the legacy engine. Linux/GCC validation is deferred. SDL 1.1.7 is historical context, not an asserted current build dependency.
+- **Phase 1 validation baseline**: C23 on macOS with Clang, against the SDL 1.2-era API surface currently used by the legacy engine. Other-platform validation is outside the current project scope. SDL 1.1.7 is historical context, not an asserted current build dependency.
 
 - **CMake 3.10+**: Required for configuring the build.
 
