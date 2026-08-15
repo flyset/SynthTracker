@@ -33,7 +33,7 @@ int multimode=0;
 U32 eClocks=14318;
 
 void NotePort(U32 i);
-int LoopOff(void /* struct Audio *audio */);
+int LoopOff(struct Audio *audio);
 int LoopOn(struct Audio *audio);
 void RunMacro(struct Channel *channel, U32 nChannel);
 void DoEffects(struct Channel *channel);
@@ -117,8 +117,9 @@ void NotePort(U32 i)
 		return;\
 	}
 
-int LoopOff(/* struct Audio *audio */)
+int LoopOff(struct Audio *audio)
 {
+	(void)audio;
 	return 1;
 }
 

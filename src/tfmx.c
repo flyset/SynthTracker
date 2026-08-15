@@ -13,7 +13,7 @@
 void open_sndfile();
 void open_snddev();
 void TfmxInit();
-void StartSong();
+void StartSong(int song, int mode);
 void play_it();
 void TfmxTakedown();
 
@@ -57,7 +57,7 @@ extern int force8;
 struct Header hdr;
 extern struct Audio audioData[8];
 extern struct PatternBlock patternBlockData;
-extern int LoopOff();
+extern int LoopOff(struct Audio *audio);
 extern struct TrackManager trackManager;
 
 extern char act[8];

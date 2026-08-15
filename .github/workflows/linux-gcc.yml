@@ -1,0 +1,24 @@
+name: Linux GCC
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  c23:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake gcc make libsdl1.2-dev
+      - name: Configure, build, and test
+        env:
+          CC: gcc
+        run: |
+          cmake -S . -B build-ci -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_STANDARD=23 -DCMAKE_C_EXTENSIONS=OFF
+          cmake --build build-ci --parallel
+          ctest --test-dir build-ci --output-on-failure

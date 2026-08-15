@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
 project(tfmxplay VERSION 1.1.7)
 
+include(CTest)
+enable_testing()
+
 # Set the C standard
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 23)
 
 # SDL2 Configuration using sdl-config
 find_program(SDL_CONFIG sdl-config)
@@ -25,7 +28,7 @@ if(IS_BIG_ENDIAN)
 endif()
 
 # Include directories for SDL2 and other headers
-include_directories(${SDL2_INCLUDE_DIRS} include/)
+include_directories(include/)
 
 # Add the executable
 add_executable(tfmx 
@@ -34,5 +37,30 @@ add_executable(tfmx
     src/tfmx.c
 )
 
+# Compile probes for the affected production translation units.
+add_library(tfmx_compile_probe OBJECT src/tfmx.c)
+add_library(player_compile_probe OBJECT src/player.c)
+
+set_target_properties(tfmx_compile_probe player_compile_probe PROPERTIES
+    C_STANDARD 23
+    C_EXTENSIONS OFF
+)
+
+target_include_directories(tfmx_compile_probe PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_include_directories(player_compile_probe PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+add_test(
+    NAME tfmx_compile_probe
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target tfmx_compile_probe
+)
+add_test(
+    NAME player_compile_probe
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target player_compile_probe
+)
+
 # Link against the SDL2 library
-target_link_libraries(tfmx ${SDL2_LIBRARIES})
+target_link_libraries(tfmx ${SDL_LIBS})

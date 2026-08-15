@@ -11,7 +11,7 @@ struct Audio {
 	S8 			*sbeg,*SampleStart;
 	U8 			vol;
 	U8 			mode;
-	int 		(*loop)();
+	int 		(*loop)(struct Audio *);
 	int 		loopcnt;
 	struct Channel 	*channel;
 };
