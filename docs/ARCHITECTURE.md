@@ -36,11 +36,10 @@ legacy context, not an asserted current build dependency.
 
 ## Phase 1 validation boundary
 
-The approved Phase 1 target is a C23 baseline validated on macOS with Clang
-and Linux with GCC, while preserving the SDL 1.2-era API surface currently
-used by the legacy engine. The current CMake configuration still declares
-C99; the C23 baseline is a validation target rather than a claim that the
-configuration has already been updated or validated.
+The approved Phase 1 target is a C23 baseline validated on macOS with Clang,
+while preserving the SDL 1.2-era API surface currently used by the legacy
+engine. Linux/GCC validation is deferred. The current CMake configuration
+uses C23 and the macOS/Clang baseline has been validated.
 
 ## Porting approach
 

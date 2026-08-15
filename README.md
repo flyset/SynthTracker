@@ -25,7 +25,7 @@ This project aims to **port and refactor** the legacy **TFMX player** from C to 
 
 ## Build Instructions
 ### Dependencies
-- **Phase 1 validation baseline**: C23 on macOS with Clang and Linux with GCC, against the SDL 1.2-era API surface currently used by the legacy engine. SDL 1.1.7 is historical context, not an asserted current build dependency.
+- **Phase 1 validation baseline**: C23 on macOS with Clang, against the SDL 1.2-era API surface currently used by the legacy engine. Linux/GCC validation is deferred. SDL 1.1.7 is historical context, not an asserted current build dependency.
 
 - **CMake 3.10+**: Required for configuring the build.
 
