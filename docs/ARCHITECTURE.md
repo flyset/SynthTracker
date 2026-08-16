@@ -8,8 +8,9 @@ the end and are not resolved here.
 
 ## Current legacy state
 
-Observation: the existing code is roughly 2,674 lines of C99 in three files,
-compiled as a single SDL-linked executable (see `CMakeLists.txt`):
+Observation: the existing code is roughly 2,674 lines of C99-era source in
+three files, compiled as a single SDL-linked executable under the C23 baseline
+(see `CMakeLists.txt`):
 
 - `src/tfmx.c` — `main()`, argument parsing, file loading (`load_tfmx`), and
   byte-sniffing format detection (`tfmxtest()`).
@@ -45,9 +46,11 @@ CMake configuration uses C23 and the macOS/Clang baseline has been validated.
 
 ## Porting approach
 
-Decision: build a new engine rather than a line-by-line port of the legacy C.
+Decision: build a new C engine rather than a line-by-line port of the legacy C.
 The ideas and logic of the legacy interpreter carry over; the code shape does
-not.
+not. All TFMX-owned production and test source remains C23, including the
+future TUI/DAW; no C++ port is planned. Third-party dependency implementation
+languages are evaluated separately.
 
 Compatibility floor — resolves the direction of VISION.md open question Q1:
 the engine must load and play existing TFMX modules correctly. Bit-identical
@@ -82,16 +85,36 @@ future:
 - Mixer / output — takes per-voice state and produces samples; owns filter,
   stereo blend, and format conversion; can render to a device or to
   memory/file.
-- TUI (future) — a fourth component, custom-built (see below).
+- TUI (future) — a fourth component, custom-built in C23 (see below).
 
 Each box maps to a legacy file — `tfmx.c`, `player.c`, `audio.c` — which
 serves as a reference implementation.
+
+## Test layout
+
+Decision: automated tests use a component-first layout that mirrors the
+planned engine decomposition:
+
+- `tests/playback/` — playback-core behavior, beginning with
+  `tests/playback/test_playback_context.c`.
+- `tests/loader/` — module loading and representation behavior.
+- `tests/mixer/` — rendering and audio-mixing behavior.
+- `tests/editor/` — future editing behavior.
+- `tests/tui/` — future terminal-interface behavior.
+- `tests/integration/` — cross-component and end-to-end behavior.
+- `tests/fixtures/` — shared self-authored fixtures used by the component and
+  integration tests.
+
+The component-first layout is the agreed structure for test work. The initial
+implemented paths are `tests/playback/test_playback_context.c` and the
+self-authored fixtures under `tests/fixtures/`; the remaining component paths
+are reserved for future coverage.
 
 ## TUI
 
 Decision: the interface is a TUI (per VISION.md, Qt/ImGui and other windowed
 toolkits are out of scope). The TUI will be custom-built as a first-class
-product component — deliberately not an off-the-shelf TUI library
+product component in C23 — deliberately not an off-the-shelf TUI library
 integration — with the intent of pushing what is possible in a terminal
 (aesthetic identity, redefining terminal UI potential, following the
 precedent of trackers like FastTracker II / Schism Tracker and tools like
@@ -104,6 +127,9 @@ independently.
 
 The detailed TUI architecture record is `docs/TUI.md`. Design work remains
 deferred.
+
+Phase 5 is **C23 product readiness**: a reusable C playback core and a C-based
+TUI/DAW foundation.
 
 ## Open / deferred
 

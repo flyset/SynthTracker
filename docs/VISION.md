@@ -3,8 +3,8 @@
 ## Purpose
 
 TFMX.cpp is a modern, maintainable reimplementation of the legacy TFMX
-music engine, originally built for SDL 1.1.7. It ports the original C
-engine to C++ while keeping compatibility with existing TFMX modules
+music engine, originally built for SDL 1.1.7. It refactors the original C
+engine as C23 while keeping compatibility with existing TFMX modules
 (MasterBlazer, Turrican II/III, Z-Out, and others), and builds a terminal
 UI on top of it. The product is a TUI digital audio workstation (DAW):
 a tracker-style environment for playing, composing, and editing TFMX
@@ -13,7 +13,10 @@ modules.
 ## What it is
 
 - A terminal application that plays, composes, and edits TFMX modules.
-- A modern C++ playback core refactored out of the legacy C player.
+- A reusable C playback core refactored out of the legacy C player.
+- A future C-based TUI/DAW foundation. All TFMX-owned production and test
+  source remains C23; no C++ port is planned. Third-party dependency
+  implementation languages remain separately evaluated.
 - A DAW whose native format is TFMX.
 
 ## What it is not (non-goals)
@@ -45,4 +48,6 @@ modules.
 
 - Layered roadmap: playback core, then the TUI DAW (pattern editing,
   composing, mixing). Format extension comes after the DAW exists.
+- Phase 5 is **C23 product readiness**: a reusable C playback core and a
+  C-based TUI/DAW foundation.
 - Detailed sequencing is deferred until the open questions resolve.

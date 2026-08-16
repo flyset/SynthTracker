@@ -1,15 +1,26 @@
 # TFMX.cpp
 
-A **modern C++ port and refactor** of the legacy **TFMX music player**, with SDL 1.1.7 retained as historical legacy context.
+A **modern C23 reimplementation and refactor** of the legacy **TFMX music
+player**, with SDL 1.1.7 retained as historical legacy context. The repository
+identity remains **TFMX.cpp**.
 
 ## Overview
-This project aims to **port and refactor** the legacy **TFMX player** from C to **C++**, while adding a **modern UI** to enhance usability. The goal is to maintain compatibility with existing TFMX modules while improving performance, maintainability, and user experience.
+This project aims to **refactor and reimplement** the legacy **TFMX player** in
+C23, while adding a modern terminal UI to enhance usability. All TFMX-owned
+production and test source, including the future TUI/DAW, remains C23; no C++
+port is planned. Third-party dependency implementation languages are evaluated
+separately. The goal is to maintain compatibility with existing TFMX modules
+while improving performance, maintainability, and user experience.
 
 ### Current Status
-- **Porting progress**: Initial refactoring and setup for C++ compatibility.
-- **UI Integration**: Planning and design for a modern user interface (e.g., Qt, ImGui, or SDL2-based).
+- **Refactoring progress**: Initial refactoring and setup for the C23 product
+  boundary.
+- **UI Integration**: Planning and design for a modern terminal user interface
+  (TUI).
 - **Legacy Compatibility**: Retaining support for legacy TFMX modules and the SDL 1.2-era audio features currently used by the engine, including stereo blending and low-pass filtering.
 - **Platform scope**: macOS only. Linux and other platform support are outside the current project scope; adding a platform requires a new explicit roadmap decision.
+- **Roadmap**: Phase 5 is **C23 product readiness**: a reusable C playback core
+  and a C-based TUI/DAW foundation.
 
 ## Features
 - Plays **most TFMX modules**, including:
@@ -28,7 +39,11 @@ This project aims to **port and refactor** the legacy **TFMX player** from C to 
 ### Dependencies
 - **Phase 1 validation baseline**: C23 on macOS with Clang, against the SDL 1.2-era API surface currently used by the legacy engine. Other-platform validation is outside the current project scope. SDL 1.1.7 is historical context, not an asserted current build dependency.
 
-- **CMake 3.10+**: Required for configuring the build.
+- **CMake 3.13+**: Minimum version required for configuring the build.
+- **CMocka 2.0.2**: Chosen C-native test framework, provided as a system-installed
+  Homebrew package on macOS. CMake uses config-mode discovery via the Homebrew
+  CMocka prefix, and the test target is linked and registered with CTest. CMocka
+  is not downloaded or vendored.
 
 ### Steps
 1. Create a build directory and navigate into it:

@@ -3,8 +3,9 @@
 ## Project Intent
 
 TFMX.cpp is a modern, maintainable reimplementation of the legacy TFMX
-music engine, originally built for SDL 1.1.7. It ports the original C
-engine to C++ while keeping compatibility with existing TFMX modules
+music engine, originally built for SDL 1.1.7. It keeps the TFMX-owned
+production and test source in C23 while preserving compatibility with
+existing modules
 (MasterBlazer, Turrican II/III, Z-Out, and others), and builds a terminal
 UI on top of it. The product is a TUI digital audio workstation (DAW):
 a tracker-style environment for playing, composing, and editing TFMX
@@ -18,6 +19,9 @@ modules, extending the legacy format rather than replacing it.
 - Do not store secrets, tokens, private keys, or sensitive personal data.
 - Keep memory visible, consent-based, and easy to delete.
 - Favor simple filesystem-backed schemas before infrastructure complexity.
+- Keep all TFMX-owned production and test source, including the future TUI/DAW,
+  in C23. A C++ port is not planned; implementation languages for third-party
+  dependencies are evaluated separately.
 
 ## Guardrails
 
@@ -34,13 +38,15 @@ modules, extending the legacy format rather than replacing it.
 
 ## Current Scope
 
-- Porting the legacy C engine to C++ (src/, include/) and refactoring it
-  into a reusable playback core.
+- Refactoring the legacy C engine (src/, include/) into a reusable C playback
+  core under the C23 product boundary.
 - Preserving compatibility with existing TFMX modules and the legacy
   SDL 1.1.7 features (stereo blending, low-pass filter).
-- Designing the TUI DAW layer on top of the engine; no UI or editing
+- Designing the future C23 TUI DAW layer on top of the engine; no UI or editing
   functionality is implemented yet.
-- Backlog is empty: no Tracks exist, so no implementation is ACTIVE.
+- Phase 5 is C23 product readiness: a reusable C playback core and C-based
+  TUI/DAW foundation.
+- Consult `.backlog/` for the current Track status; implementation requires an ACTIVE Track.
 
 ## Project Memory
 
@@ -66,6 +72,8 @@ Always try to use subagents rather than doing the work directly.
   memory, configuration, or Git history.
 - Use `@plan` for read-only architecture analysis and implementation-plan
   design; it never edits files or runs state-changing commands.
+- Use `@investigate` for read-only investigation and debugging of complex issues only;
+  it never edits files or runs state-changing commands.
 - Use `@repo` only for read-only Git status, diff, history, and repository
   structure inspection; it must not modify files or implement behavior, tests,
   or documentation.

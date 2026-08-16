@@ -13,7 +13,8 @@ address and length, with which volume and pitch effects, and when to wait,
 loop, or call another macro. This document gives the reimplementation a
 shared, evidence-based picture of that layer before design work starts, and
 keeps external context about the format's origins clearly separate from what
-the local code actually does.
+the local code actually does. Any future TFMX-owned macro implementation and
+its tests remain C23; no C++ port is planned.
 
 ## Why macros matter
 

@@ -1,8 +1,10 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 project(tfmxplay VERSION 1.1.7)
 
 include(CTest)
 enable_testing()
+
+find_package(cmocka 2.0.2 CONFIG REQUIRED)
 
 # Set the C standard
 set(CMAKE_C_STANDARD 23)
@@ -59,6 +61,28 @@ add_test(
 add_test(
     NAME player_compile_probe
     COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target player_compile_probe
+)
+
+add_executable(test_playback_context
+    tests/playback/test_playback_context.c
+    src/playback_context.c
+    src/tfmx_loader.c
+    src/playback_legacy_bridge.c
+    src/playback_legacy_mixer.c
+    src/player.c
+)
+target_include_directories(test_playback_context PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_compile_definitions(test_playback_context PRIVATE
+    TFMX_SOURCE_ROOT="${CMAKE_SOURCE_DIR}"
+)
+target_link_libraries(test_playback_context PRIVATE cmocka::cmocka)
+
+add_test(
+    NAME test_playback_context
+    COMMAND test_playback_context
 )
 
 # Link against the SDL2 library
