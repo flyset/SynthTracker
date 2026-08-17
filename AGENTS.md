@@ -11,7 +11,7 @@ and others) and extending the legacy format rather than replacing it.
 
 ## Principles
 
-- Read before changing, especially `docs/AI_WORKFLOW.md`.
+- Read before changing, especially `docs/AGENT_WORKFLOW.md`.
 - Prefer small, explicit MCP tools over broad access.
 - Do not add shell-execution or unrestricted filesystem features.
 - Do not store secrets, tokens, private keys, or sensitive personal data.
@@ -23,7 +23,7 @@ and others) and extending the legacy format rather than replacing it.
 
 ## Guardrails
 
-- ALWAYS read `docs/AI_WORKFLOW.md`
+- ALWAYS read `docs/AGENT_WORKFLOW.md`
 
 ## Analysis Style
 
@@ -105,7 +105,7 @@ TBD
 - Use `README.md` for user-facing setup, status, and quick orientation.
 - Use `VISION.md` for product intent, boundaries, non-goals, and future direction.
 - Use `docs/ARCHITECTURE.md` for current code organization and architectural rules.
-- Use `docs/AI_WORKFLOW.md` for contribution gates and verification expectations.
+- Use `docs/AGENT_WORKFLOW.md` for contribution gates and verification expectations.
 - Use `docs/GLOSSARY.md` for canonical product and protocol terminology.
 - Use `docs/TFMXLegacy/` as the self-contained reference for the original
   TFMX format and player mechanics; start at `docs/TFMXLegacy/README.md`.

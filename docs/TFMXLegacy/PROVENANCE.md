@@ -132,7 +132,7 @@ their occurrence sites.
 
 When extending these documents:
 
-- Follow `AGENTS.md` (root) and `docs/AI_WORKFLOW.md`; documentation changes
+- Follow `AGENTS.md` (root) and `docs/AGENT_WORKFLOW.md`; documentation changes
   are subject to the same verification expectations.
 - Re-validate every opcode table, variant description, and numeric claim
   against the current local code before finalizing.
