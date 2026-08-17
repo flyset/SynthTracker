@@ -5,22 +5,23 @@ player**, with SDL 1.1.7 retained as historical legacy context. The repository
 identity remains **TFMX.cpp**.
 
 ## Overview
-This project aims to **refactor and reimplement** the legacy **TFMX player** in
-C23, while adding a modern terminal UI to enhance usability. All TFMX-owned
-production and test source, including the future TUI/DAW, remains C23; no C++
-port is planned. Third-party dependency implementation languages are evaluated
-separately. The goal is to maintain compatibility with existing TFMX modules
-while improving performance, maintainability, and user experience.
+TFMX.cpp is one system with a current transitional legacy CLI plus SDL-backed
+audio. It aims to **refactor and reimplement** the legacy **TFMX player** in
+C23, with a future GUI-first TFMX DAW using SDL. All TFMX-owned production and
+test source, including the future GUI/DAW, remains C23; no C++ port is planned.
+Third-party dependency implementation languages are evaluated separately. The
+goal is to maintain compatibility with existing TFMX modules while improving
+performance, maintainability, and user experience.
 
 ### Current Status
 - **Refactoring progress**: Initial refactoring and setup for the C23 product
   boundary.
-- **UI Integration**: Planning and design for a modern terminal user interface
-  (TUI).
+- **UI Integration**: Planning and design for a future GUI-first DAW; no GUI or
+  editing functionality is implemented yet.
 - **Legacy Compatibility**: Retaining support for legacy TFMX modules and the SDL 1.2-era audio features currently used by the engine, including stereo blending and low-pass filtering.
 - **Platform scope**: macOS only. Linux and other platform support are outside the current project scope; adding a platform requires a new explicit roadmap decision.
 - **Roadmap**: Phase 5 is **C23 product readiness**: a reusable C playback core
-  and a C-based TUI/DAW foundation.
+  and a C-based GUI/DAW foundation.
 
 ## Features
 - Plays **most TFMX modules**, including:
@@ -29,6 +30,8 @@ while improving performance, maintainability, and user experience.
 - **Stereo blending** (adjustable for headphone users)
 - **Low-pass filter** (high, medium, low cutoff frequencies)
 - **macOS support** (the current platform scope)
+- **CoreAudio output** is the intended future macOS Audio Output Adapter; it is
+  not implemented yet.
 
 ## Known Issues
 - Some TFMX files may not play correctly.

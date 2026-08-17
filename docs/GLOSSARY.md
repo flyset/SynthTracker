@@ -36,3 +36,16 @@ are marked **open** and are not defined here.
 - **Raw versus decoded representation** — **open**. Whether the new engine
   keeps macros as arrays of 32-bit words or decodes them into typed
   structures is unresolved; see `MACRO_DESIGN.md`.
+- **Module Domain Model** — future/proposed shared editable/playable model for
+  TFMX module data. Its loader, writer, playback, ownership, lifetime,
+  validation, and raw-versus-decoded contracts are **open**; it is not
+  implemented by the current transitional CLI.
+- **GUI-first DAW** — the future product direction: a C23 TFMX DAW using SDL
+  on macOS.
+- **Audio Output Port** — future/proposed device-independent playback-output
+  boundary. **CoreAudio Adapter** is the intended macOS implementation; the
+  integration and API are **open**.
+- **Sequencing / Synthesis** — future/proposed distinct responsibilities that
+  share a control vocabulary: Sequencing schedules musical structure, while
+  Synthesis interprets voice and sound behavior. Neither target responsibility
+  is implemented as a separate boundary.

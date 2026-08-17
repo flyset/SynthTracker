@@ -49,7 +49,7 @@ CMake configuration uses C23 and the macOS/Clang baseline has been validated.
 Decision: build a new C engine rather than a line-by-line port of the legacy C.
 The ideas and logic of the legacy interpreter carry over; the code shape does
 not. All TFMX-owned production and test source remains C23, including the
-future TUI/DAW; no C++ port is planned. Third-party dependency implementation
+future GUI/DAW; no C++ port is planned. Third-party dependency implementation
 languages are evaluated separately.
 
 Compatibility floor — resolves the direction of VISION.md open question Q1:
@@ -70,25 +70,30 @@ Decision: the "logic" that must be preserved spans four layers:
 4. Audio model — period-to-frequency math, fixed-point mixing,
    envelope/vibrato/portamento, sample-loop handling.
 
-## Top-level decomposition
+## System decomposition (target)
 
-Decision (agreed skeleton): three components now, with a fourth in the
-future:
+The following responsibilities are future/proposed and are **not implemented**
+as this decomposition. TFMX.cpp remains one system; the current transitional
+legacy CLI and SDL-backed audio are the implemented shape.
 
-- Module loader — reads a TFMX module file into a typed, host-endian model.
-  The boundary between raw bytes and the rest of the engine. Deferred detail:
-  the exact shape of the loader output (for example, whether patterns/macros
-  remain arrays of 32-bit words with the opcode in the high byte, versus
-  deeper decoding).
-- Player core — the interpreter: tracksteps → patterns → macros, per-channel
-  state, effects, timing. Pure computation; no I/O.
-- Mixer / output — takes per-voice state and produces samples; owns filter,
-  stereo blend, and format conversion; can render to a device or to
-  memory/file.
-- TUI (future) — a fourth component, custom-built in C23 (see below).
+- **Editor** — future GUI-first editing and composition experience.
+- **Loader/Writer** — future TFMX-native loading and writing boundary.
+- **Module Domain Model** — a shared editable/playable model used by the Editor,
+  Loader/Writer, and Playback Engine.
+- **Sequencing** — future trackstep/pattern scheduling, sharing control
+  vocabulary with Synthesis but remaining a distinct responsibility.
+- **Synthesis** — future macro/voice/effect interpretation, sharing that control
+  vocabulary but remaining distinct from Sequencing.
+- **Playback Engine** — future orchestration of sequencing and synthesis.
+- **Audio Mixer** — future sample rendering, filtering, stereo blending, and
+  format conversion.
+- **Audio Output Port** — future device-independent output boundary.
+- **CoreAudio Adapter** — intended future macOS implementation of the Audio
+  Output Port; integration details remain open.
 
-Each box maps to a legacy file — `tfmx.c`, `player.c`, `audio.c` — which
-serves as a reference implementation.
+The current legacy files (`tfmx.c`, `player.c`, and `audio.c`) are the reference
+implementation for these responsibilities, not a claim that the target seams
+already exist.
 
 ## Test layout
 
@@ -100,7 +105,7 @@ planned engine decomposition:
 - `tests/loader/` — module loading and representation behavior.
 - `tests/mixer/` — rendering and audio-mixing behavior.
 - `tests/editor/` — future editing behavior.
-- `tests/tui/` — future terminal-interface behavior.
+- `tests/gui/` — reserved future GUI behavior; the directory is not created yet.
 - `tests/integration/` — cross-component and end-to-end behavior.
 - `tests/fixtures/` — shared self-authored fixtures used by the component and
   integration tests.
@@ -110,26 +115,14 @@ implemented paths are `tests/playback/test_playback_context.c` and the
 self-authored fixtures under `tests/fixtures/`; the remaining component paths
 are reserved for future coverage.
 
-## TUI
+## GUI direction
 
-Decision: the interface is a TUI (per VISION.md, Qt/ImGui and other windowed
-toolkits are out of scope). The TUI will be custom-built as a first-class
-product component in C23 — deliberately not an off-the-shelf TUI library
-integration — with the intent of pushing what is possible in a terminal
-(aesthetic identity, redefining terminal UI potential, following the
-precedent of trackers like FastTracker II / Schism Tracker and tools like
-opencode's OpenTUI).
-
-Consequence: the engine must be UI-agnostic, exposing a defined control
-surface (play/stop/seek/subsong/editing) and an observability surface
-(position, active channels, per-voice state), so the TUI can be built
-independently.
-
-The detailed TUI architecture record is `docs/TUI.md`. Design work remains
-deferred.
+The target interface is GUI-first and uses SDL. Detailed GUI design remains
+open. The engine must remain UI-agnostic so the future Editor can be developed
+independently; no GUI control or observability API is asserted here.
 
 Phase 5 is **C23 product readiness**: a reusable C playback core and a C-based
-TUI/DAW foundation.
+GUI/DAW foundation.
 
 ## Open / deferred
 
@@ -137,11 +130,12 @@ These items are not resolved here:
 
 - How per-song hacks are handled in the new engine (kept as data/flags versus
   starting clean).
-- The exact loader-to-player seam contract (the typed model shape).
+- The loader → Module Domain Model → Playback Engine contract, including
+  ownership and lifetime, validation responsibilities, and whether the model
+  carries raw or decoded representations.
 - The macro-layer design: how macros are modeled in the new engine (for
   example, arrays of 32-bit words with the opcode in the high byte, versus a
   decoded/typed representation). Deliberately left open in
   `docs/MACRO_DESIGN.md`.
-- The TUI substrate: full custom from raw terminal bytes versus custom UI on
-  a thin terminal-I/O substrate (raw mode, escape parsing, resize events).
-- The TUI itself: no design work yet.
+- Detailed GUI design and SDL integration details.
+- CoreAudio Adapter integration details and the exact Audio Output Port seam.

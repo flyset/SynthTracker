@@ -31,7 +31,7 @@ its tests remain C23; no C++ port is planned.
   trackstep → pattern → macro (`docs/ARCHITECTURE.md`); per-channel state and
   per-tick effects hang off macro execution (`DoMacro`, `DoEffects`,
   `src/player.c`).
-- **They are a future editing target.** The TUI DAW will compose and edit TFMX
+- **They are a future editing target.** The GUI-first DAW will compose and edit TFMX
   modules (per `docs/VISION.md`), so macros will be first-class objects in the
   product, not just opaque data the player walks.
 
@@ -85,9 +85,10 @@ These are open; none are resolved here:
 
 - **Representation: raw versus decoded.** Whether macros remain arrays of
   32-bit words with the opcode in the high byte, or are decoded into a typed
-  model at the loader seam, is explicitly **not decided** by this document. It
-  is the same open seam question recorded in `docs/ARCHITECTURE.md` ("The
-  exact loader-to-player seam contract").
+  model, is explicitly **not decided** by this document. The open boundary is
+  **Loader/Writer → Module Domain Model → Playback Engine**: ownership and
+  lifetime, validation responsibilities, and raw-versus-decoded representation
+  remain open, with no implied decision in this document.
 - How the new engine executes macros: interpret the word stream as the legacy
   code does, or transform it into an internal representation first.
 - How the unsupported and stub opcodes are handled in a future editor (SID
@@ -95,7 +96,7 @@ These are open; none are resolved here:
 - How old-style versus new-style flow, key-up waits, and DMA-synchronized
   waits survive a decoded representation, if one is chosen.
 - How macro editing interacts with the timing model (VBI-based waits, eClocks)
-  in the TUI.
+  in the GUI.
 - Whether the unresolved opcode-count discrepancy matters for new-engine
   modeling, or is purely a documentation artifact.
 

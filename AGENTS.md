@@ -2,14 +2,12 @@
 
 ## Project Intent
 
-TFMX.cpp is a modern, maintainable reimplementation of the legacy TFMX
-music engine, originally built for SDL 1.1.7. It keeps the TFMX-owned
-production and test source in C23 while preserving compatibility with
-existing modules
-(MasterBlazer, Turrican II/III, Z-Out, and others), and builds a terminal
-UI on top of it. The product is a TUI digital audio workstation (DAW):
-a tracker-style environment for playing, composing, and editing TFMX
-modules, extending the legacy format rather than replacing it.
+TFMX.cpp is one system: a modern, maintainable reimplementation of the
+legacy TFMX music engine, originally built for SDL 1.1.7. The current
+transitional product is a legacy CLI with SDL-backed audio. The target is a
+GUI-first TFMX digital audio workstation (DAW) using SDL, while preserving
+compatibility with existing modules (MasterBlazer, Turrican II/III, Z-Out,
+and others) and extending the legacy format rather than replacing it.
 
 ## Principles
 
@@ -19,7 +17,7 @@ modules, extending the legacy format rather than replacing it.
 - Do not store secrets, tokens, private keys, or sensitive personal data.
 - Keep memory visible, consent-based, and easy to delete.
 - Favor simple filesystem-backed schemas before infrastructure complexity.
-- Keep all TFMX-owned production and test source, including the future TUI/DAW,
+- Keep all TFMX-owned production and test source, including the future GUI/DAW,
   in C23. A C++ port is not planned; implementation languages for third-party
   dependencies are evaluated separately.
 
@@ -40,12 +38,13 @@ modules, extending the legacy format rather than replacing it.
 
 - Refactoring the legacy C engine (src/, include/) into a reusable C playback
   core under the C23 product boundary.
-- Preserving compatibility with existing TFMX modules and the legacy
-  SDL 1.1.7 features (stereo blending, low-pass filter).
-- Designing the future C23 TUI DAW layer on top of the engine; no UI or editing
+- Preserving compatibility with existing TFMX modules and the SDL-era audio
+  features exposed through the current SDL 1.2-era API surface (stereo
+  blending, low-pass filter); SDL 1.1.7 remains historical context.
+- Designing the future C23 GUI DAW layer on top of the engine; no GUI or editing
   functionality is implemented yet.
 - Phase 5 is C23 product readiness: a reusable C playback core and C-based
-  TUI/DAW foundation.
+  GUI/DAW foundation.
 - Consult `.backlog/` for the current Track status; implementation requires an ACTIVE Track.
 
 ## Project Memory
