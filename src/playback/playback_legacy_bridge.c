@@ -29,6 +29,12 @@ static S8 *bridge_sample;
 
 extern struct TrackManager trackManager;
 extern struct Audio audioData[8];
+extern struct Channel channelData[16];
+extern struct PatternBlock patternBlockData;
+extern struct Idb idb;
+extern S8 tempVol;
+extern int jiffies;
+extern U32 eClocks;
 void TfmxInit(void);
 void StartSong(int song, int mode);
 void tfmxIrqIn(void);
@@ -97,26 +103,46 @@ static int copy_state(const unsigned char *mdat, size_t mdat_size,
 
 void tfmx_playback_legacy_bridge_reset(void)
 {
+    trackManager.PlayerEnable = 0;
     free(bridge_sample);
     bridge_sample = NULL;
     smplbuf = NULL;
     patterns = NULL;
     macros = NULL;
+    memset(audioData, 0, sizeof(audioData));
+    memset(channelData, 0, sizeof(channelData));
+    memset(&patternBlockData, 0, sizeof(patternBlockData));
+    memset(&trackManager, 0, sizeof(trackManager));
+    memset(&idb, 0, sizeof(idb));
+    tempVol = 0;
+    jiffies = 0;
+    multimode = 0;
+    eClocks = 14318;
+    startPat = -1;
+    gemx = 0;
+    loops = 1;
+    dangerFreakHack = 0;
+    oopsUpHack = 0;
+    monkeyHack = 0;
     memset(editbuf, 0, sizeof(editbuf));
     memset(&hdr, 0, sizeof(hdr));
-    trackManager.PlayerEnable = 0;
 }
 
-int tfmx_playback_legacy_bridge_tick(int *active, unsigned short *pitch,
-                                     unsigned char *volume)
+int tfmx_playback_legacy_bridge_tick(tfmx_voice_snapshot *snapshots)
 {
-    if (active == NULL || pitch == NULL || volume == NULL) {
+    unsigned int voice;
+
+    if (snapshots == NULL) {
         return 0;
     }
     tfmxIrqIn();
-    *active = audioData[0].mode != 0;
-    *pitch = audioData[0].channel == NULL ? 0 : audioData[0].channel->CurPeriod;
-    *volume = audioData[0].vol;
+    for (voice = 0; voice < 8; ++voice) {
+        snapshots[voice].active = audioData[voice].mode != 0;
+        snapshots[voice].pitch = audioData[voice].channel == NULL
+                                     ? 0
+                                     : audioData[voice].channel->CurPeriod;
+        snapshots[voice].volume = audioData[voice].vol;
+    }
     return 1;
 }
 
@@ -133,8 +159,11 @@ int tfmx_playback_legacy_bridge_start(const unsigned char *mdat,
                                       unsigned int subsong)
 {
     tfmx_playback_legacy_bridge_reset();
-    if (mdat == NULL || smpl == NULL || subsong != 0 ||
-        !copy_state(mdat, mdat_size, smpl, smpl_size, metadata)) {
+    if (mdat == NULL || smpl == NULL || subsong != 0) {
+        return 0;
+    }
+    if (!copy_state(mdat, mdat_size, smpl, smpl_size, metadata)) {
+        tfmx_playback_legacy_bridge_reset();
         return 0;
     }
     TfmxInit();

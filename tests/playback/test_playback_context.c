@@ -333,6 +333,91 @@ static void test_playback_context_tick_and_snapshot_reject_invalid_state(void **
     tfmx_playback_context_destroy(context);
 }
 
+static tfmx_playback_context *start_step8_fixture(void);
+
+static void assert_snapshot_set_zero(const tfmx_voice_snapshot_set *snapshot)
+{
+    for (unsigned int voice = 0; voice < TFMX_PLAYBACK_SNAPSHOT_VOICE_COUNT; ++voice) {
+        assert_int_equal(snapshot->voice[voice].active, 0);
+        assert_int_equal(snapshot->voice[voice].pitch, 0);
+        assert_int_equal(snapshot->voice[voice].volume, 0);
+    }
+}
+
+static void test_playback_context_snapshot_all_rejects_invalid_or_unstarted_without_writes(void **state)
+{
+    tfmx_playback_context *context = tfmx_playback_context_create();
+    tfmx_voice_snapshot_set snapshot;
+    tfmx_voice_snapshot_set sentinel;
+
+    (void)state;
+    for (unsigned int voice = 0; voice < TFMX_PLAYBACK_SNAPSHOT_VOICE_COUNT; ++voice) {
+        sentinel.voice[voice] = (tfmx_voice_snapshot){ 7, 0x1234, 9 };
+    }
+    snapshot = sentinel;
+    assert_int_equal(tfmx_playback_context_snapshot_all(NULL, &snapshot),
+                     TFMX_SNAPSHOT_INVALID_ARGUMENT);
+    assert_memory_equal(&snapshot, &sentinel, sizeof(snapshot));
+    assert_int_equal(tfmx_playback_context_snapshot_all(context, NULL),
+                     TFMX_SNAPSHOT_INVALID_ARGUMENT);
+    snapshot = sentinel;
+    assert_int_equal(tfmx_playback_context_snapshot_all(context, &snapshot),
+                     TFMX_SNAPSHOT_NOT_STARTED);
+    assert_memory_equal(&snapshot, &sentinel, sizeof(snapshot));
+    tfmx_playback_context_destroy(context);
+}
+
+static void test_playback_context_snapshot_all_caches_same_tick_values(void **state)
+{
+    tfmx_playback_context *context = start_step8_fixture();
+    tfmx_voice_snapshot_set all_snapshot;
+    tfmx_voice_snapshot voice_zero;
+    tfmx_voice_snapshot_set stable_snapshot;
+
+    (void)state;
+    assert_int_equal(tfmx_playback_context_snapshot_all(context, &all_snapshot),
+                     TFMX_SNAPSHOT_SUCCESS);
+    assert_snapshot_set_zero(&all_snapshot);
+    assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_SUCCESS);
+    assert_int_equal(tfmx_playback_context_snapshot(context, 0, &voice_zero),
+                     TFMX_SNAPSHOT_SUCCESS);
+    assert_int_equal(tfmx_playback_context_snapshot_all(context, &all_snapshot),
+                     TFMX_SNAPSHOT_SUCCESS);
+    assert_memory_equal(&all_snapshot.voice[0], &voice_zero, sizeof(voice_zero));
+    stable_snapshot = all_snapshot;
+    assert_int_equal(tfmx_playback_context_snapshot_all(context, &all_snapshot),
+                     TFMX_SNAPSHOT_SUCCESS);
+    assert_memory_equal(&all_snapshot, &stable_snapshot, sizeof(all_snapshot));
+    tfmx_playback_context_destroy(context);
+}
+
+static void test_playback_context_snapshot_all_resets_on_start_and_reload(void **state)
+{
+    const char *mdat_path = TFMX_SOURCE_ROOT "/tests/fixtures/mdat.step8";
+    const char *smpl_path = TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8";
+    tfmx_playback_context *context = start_step8_fixture();
+    tfmx_voice_snapshot_set snapshot;
+
+    (void)state;
+    for (unsigned int tick = 0; tick < 3; ++tick) {
+        assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_SUCCESS);
+    }
+    assert_int_equal(tfmx_playback_context_snapshot_all(context, &snapshot),
+                     TFMX_SNAPSHOT_SUCCESS);
+    assert_true(snapshot.voice[0].active != 0);
+    assert_int_equal(tfmx_playback_context_start(context, 0), TFMX_START_SUCCESS);
+    assert_int_equal(tfmx_playback_context_snapshot_all(context, &snapshot),
+                     TFMX_SNAPSHOT_SUCCESS);
+    assert_snapshot_set_zero(&snapshot);
+    assert_int_equal(tfmx_playback_context_load(context, mdat_path, smpl_path),
+                     TFMX_LOAD_SUCCESS);
+    assert_int_equal(tfmx_playback_context_start(context, 0), TFMX_START_SUCCESS);
+    assert_int_equal(tfmx_playback_context_snapshot_all(context, &snapshot),
+                     TFMX_SNAPSHOT_SUCCESS);
+    assert_snapshot_set_zero(&snapshot);
+    tfmx_playback_context_destroy(context);
+}
+
 static tfmx_playback_context *start_step8_fixture(void)
 {
     tfmx_playback_context *context = tfmx_playback_context_create();
@@ -439,6 +524,246 @@ static void test_playback_context_reports_engine_completion(void **state)
     tfmx_playback_context_destroy(context);
 }
 
+static void test_playback_context_plays_finite_pattern_loop_to_completion(void **state)
+{
+    unsigned char output[3528];
+    size_t bytes;
+    tfmx_playback_context *context;
+    tfmx_voice_snapshot snapshot;
+    unsigned int repeated_events = 0;
+    unsigned int non_silent_renders = 0;
+    unsigned int tick;
+
+    (void)state;
+    context = tfmx_playback_context_create();
+    assert_non_null(context);
+    assert_int_equal(tfmx_playback_context_load(
+                         context, TFMX_SOURCE_ROOT "/tests/fixtures/mdat.loop_f1",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.loop_f1"),
+                     TFMX_LOAD_SUCCESS);
+    assert_int_equal(tfmx_playback_context_start(context, 0), TFMX_START_SUCCESS);
+
+    for (tick = 0; tick < 128 && !tfmx_playback_context_is_complete(context);
+         ++tick) {
+        int nonzero = 0;
+
+        assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_SUCCESS);
+        assert_int_equal(tfmx_playback_context_snapshot(context, 0, &snapshot),
+                         TFMX_SNAPSHOT_SUCCESS);
+        if (snapshot.active != 0 && snapshot.pitch != 0 && snapshot.volume != 0) {
+            ++repeated_events;
+        }
+        memset(output, 0, sizeof(output));
+        assert_int_equal(tfmx_playback_context_render(context, output, sizeof(output),
+                                                       &bytes),
+                         TFMX_RENDER_SUCCESS);
+        for (size_t index = 0; index < bytes; ++index) {
+            if (output[index] != 0) {
+                nonzero = 1;
+                break;
+            }
+        }
+        if (nonzero) {
+            ++non_silent_renders;
+        }
+    }
+
+    assert_true(repeated_events > 1);
+    assert_true(non_silent_renders > 0);
+    assert_true(tfmx_playback_context_is_complete(context));
+    assert_true(tick < 128);
+    tfmx_playback_context_destroy(context);
+}
+
+static void test_playback_context_applies_envelope_on_engine_ticks_with_tempo_prescale(void **state)
+{
+    static const unsigned char expected_volume[] = {
+        0, 0, 15, 15, 15, 15, 15, 15, 15, 15,
+        15, 15, 15, 15, 12, 12, 9, 9, 6
+    };
+    tfmx_playback_context *context;
+    tfmx_voice_snapshot snapshot;
+    unsigned char output[3528];
+    size_t bytes = 0;
+    unsigned int tick;
+    unsigned int non_silent_renders = 0;
+
+    (void)state;
+    context = tfmx_playback_context_create();
+    assert_non_null(context);
+    assert_int_equal(tfmx_playback_context_load(
+                         context, TFMX_SOURCE_ROOT "/tests/fixtures/mdat.envelope_tempo",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.envelope_tempo"),
+                     TFMX_LOAD_SUCCESS);
+    assert_int_equal(tfmx_playback_context_start(context, 0), TFMX_START_SUCCESS);
+
+    for (tick = 0; tick < 64 && !tfmx_playback_context_is_complete(context); ++tick) {
+        assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_SUCCESS);
+        assert_int_equal(tfmx_playback_context_snapshot(context, 0, &snapshot),
+                         TFMX_SNAPSHOT_SUCCESS);
+        assert_int_equal(snapshot.active, tick < 2 ? 0 : 1);
+        assert_int_equal(snapshot.pitch, tick == 0 ? 0 : 0x06AE);
+        assert_int_equal(snapshot.volume, expected_volume[tick]);
+        memset(output, 0, sizeof(output));
+        assert_int_equal(tfmx_playback_context_render(context, output, sizeof(output), &bytes),
+                         TFMX_RENDER_SUCCESS);
+        for (size_t index = 0; index < bytes; ++index) {
+            if (output[index] != 0) {
+                ++non_silent_renders;
+                break;
+            }
+        }
+    }
+
+    assert_true(non_silent_renders > 0);
+    assert_true(tfmx_playback_context_is_complete(context));
+    assert_true(tick < 64);
+    assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_SUCCESS);
+    assert_true(tfmx_playback_context_is_complete(context));
+    tfmx_playback_context_destroy(context);
+}
+
+static void test_playback_context_clean_start_clears_prior_pitch_state(void **state)
+{
+    tfmx_playback_context *context;
+    tfmx_voice_snapshot snapshot;
+
+    (void)state;
+    context = tfmx_playback_context_create();
+    assert_non_null(context);
+    assert_int_equal(tfmx_playback_context_load(
+                         context, TFMX_SOURCE_ROOT "/tests/fixtures/mdat.envelope_tempo",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.envelope_tempo"),
+                     TFMX_LOAD_SUCCESS);
+    assert_int_equal(tfmx_playback_context_start(context, 0), TFMX_START_SUCCESS);
+    for (unsigned int tick = 0; tick < 14; ++tick) {
+        assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_SUCCESS);
+    }
+    assert_int_equal(tfmx_playback_context_snapshot(context, 0, &snapshot),
+                     TFMX_SNAPSHOT_SUCCESS);
+    assert_int_equal(snapshot.active, 1);
+    assert_int_equal(snapshot.pitch, 0x06AE);
+    assert_int_equal(snapshot.volume, 15);
+    tfmx_playback_context_destroy(context);
+
+    context = start_step8_fixture();
+    assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_SUCCESS);
+    assert_int_equal(tfmx_playback_context_snapshot(context, 0, &snapshot),
+                     TFMX_SNAPSHOT_SUCCESS);
+    assert_int_equal(snapshot.active, 0);
+    assert_int_equal(snapshot.pitch, 0);
+    assert_int_equal(snapshot.volume, 0);
+    tfmx_playback_context_destroy(context);
+}
+
+static void test_playback_context_plays_independent_voice_zero_and_one_fixture(void **state)
+{
+    unsigned char output[3528];
+    size_t bytes = 0;
+    tfmx_playback_context *context;
+    tfmx_voice_snapshot_set snapshot;
+    unsigned int tick;
+    int found_jointly_active = 0;
+
+    (void)state;
+    context = tfmx_playback_context_create();
+    assert_non_null(context);
+    assert_int_equal(tfmx_playback_context_load(
+                         context, TFMX_SOURCE_ROOT "/tests/fixtures/mdat.voices_01",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.voices_01"),
+                     TFMX_LOAD_SUCCESS);
+    assert_int_equal(tfmx_playback_context_start(context, 0), TFMX_START_SUCCESS);
+
+    for (tick = 0; tick < 128 && !tfmx_playback_context_is_complete(context); ++tick) {
+        assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_SUCCESS);
+        assert_int_equal(tfmx_playback_context_snapshot_all(context, &snapshot),
+                         TFMX_SNAPSHOT_SUCCESS);
+        if (snapshot.voice[0].active && snapshot.voice[1].active) {
+            found_jointly_active = 1;
+            assert_int_equal(snapshot.voice[0].pitch, 0x06AE);
+            assert_int_equal(snapshot.voice[0].volume, 18);
+            assert_int_equal(snapshot.voice[1].pitch, 0x064E);
+            assert_int_equal(snapshot.voice[1].volume, 30);
+            for (unsigned int voice = 2; voice < 8; ++voice) {
+                assert_false(snapshot.voice[voice].active);
+            }
+            memset(output, 0, sizeof(output));
+            assert_int_equal(tfmx_playback_context_render(context, output, sizeof(output), &bytes),
+                             TFMX_RENDER_SUCCESS);
+            assert_true(bytes == 881 * 4 || bytes == 882 * 4);
+            {
+                short left = (short)(output[0] | ((unsigned short)output[1] << 8));
+                short right = (short)(output[2] | ((unsigned short)output[3] << 8));
+                assert_true(left != 0 || right != 0);
+                assert_true(left > right);
+            }
+            break;
+        }
+    }
+    assert_true(found_jointly_active);
+
+    while (tick < 128 && !tfmx_playback_context_is_complete(context)) {
+        assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_SUCCESS);
+        ++tick;
+    }
+    assert_true(tick < 128);
+    assert_int_equal(tfmx_playback_context_snapshot_all(context, &snapshot),
+                     TFMX_SNAPSHOT_SUCCESS);
+    assert_false(snapshot.voice[0].active);
+    assert_false(snapshot.voice[1].active);
+    tfmx_playback_context_destroy(context);
+}
+
+static void assert_malformed_pair_preserves_step8(const char *case_name,
+                                                  const char *smpl_name)
+{
+    char mdat_path[512];
+    char smpl_path[512];
+    tfmx_voice_snapshot snapshot;
+    tfmx_playback_context *context = tfmx_playback_context_create();
+
+    assert_non_null(context);
+    assert_true(snprintf(mdat_path, sizeof(mdat_path),
+                         "%s/tests/fixtures/mdat.malformed_%s",
+                         TFMX_SOURCE_ROOT, case_name) > 0);
+    assert_true(snprintf(smpl_path, sizeof(smpl_path),
+                         "%s/tests/fixtures/smpl.malformed_%s",
+                         TFMX_SOURCE_ROOT, smpl_name) > 0);
+    assert_int_equal(tfmx_playback_context_load(
+                         context, TFMX_SOURCE_ROOT "/tests/fixtures/mdat.step8",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8"),
+                     TFMX_LOAD_SUCCESS);
+    assert_int_equal(tfmx_playback_context_load(context, mdat_path, smpl_path),
+                     TFMX_LOAD_INVALID_FORMAT);
+    assert_true(tfmx_playback_context_is_loaded(context));
+    assert_int_equal(tfmx_playback_context_start(context, 0), TFMX_START_SUCCESS);
+    assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_SUCCESS);
+    assert_int_equal(tfmx_playback_context_snapshot(context, 0, &snapshot),
+                     TFMX_SNAPSHOT_SUCCESS);
+    assert_int_equal(snapshot.active, 0);
+    assert_int_equal(snapshot.pitch, 0);
+    assert_int_equal(snapshot.volume, 0);
+    tfmx_playback_context_destroy(context);
+}
+
+#define MALFORMED_CASE_TEST(function_name, case_name)                         \
+    static void function_name(void **state)                                    \
+    {                                                                           \
+        (void)state;                                                           \
+        assert_malformed_pair_preserves_step8(case_name, case_name);           \
+    }
+
+MALFORMED_CASE_TEST(test_malformed_truncated_mdat, "truncated_mdat")
+MALFORMED_CASE_TEST(test_malformed_unaligned_track, "unaligned_track")
+MALFORMED_CASE_TEST(test_malformed_out_of_range_pattern, "out_of_range_pattern")
+MALFORMED_CASE_TEST(test_malformed_invalid_active_binding, "invalid_active_binding")
+MALFORMED_CASE_TEST(test_malformed_invalid_inactive_binding, "invalid_inactive_binding")
+MALFORMED_CASE_TEST(test_malformed_invalid_stop_step, "invalid_stop_step")
+MALFORMED_CASE_TEST(test_malformed_invalid_pattern_contract, "invalid_pattern_contract")
+MALFORMED_CASE_TEST(test_malformed_invalid_macro_ordering, "invalid_macro_ordering")
+MALFORMED_CASE_TEST(test_malformed_sample_range_overflow, "sample_range_overflow")
+MALFORMED_CASE_TEST(test_malformed_silent_sample_payload, "silent_sample_payload")
+
 int main(void)
 {
     const struct CMUnitTest tests[] = {
@@ -453,10 +778,27 @@ int main(void)
         cmocka_unit_test(test_playback_context_start_rejects_invalid_state_or_subsong),
         cmocka_unit_test(test_playback_context_tick_and_snapshot_trace),
         cmocka_unit_test(test_playback_context_tick_and_snapshot_reject_invalid_state),
+        cmocka_unit_test(test_playback_context_snapshot_all_rejects_invalid_or_unstarted_without_writes),
+        cmocka_unit_test(test_playback_context_snapshot_all_caches_same_tick_values),
+        cmocka_unit_test(test_playback_context_snapshot_all_resets_on_start_and_reload),
         cmocka_unit_test(test_playback_context_renders_silent_first_two_ticks),
         cmocka_unit_test(test_playback_context_renders_completed_tick_as_canonical_pcm),
         cmocka_unit_test(test_playback_context_render_rejects_invalid_arguments_and_capacity),
         cmocka_unit_test(test_playback_context_reports_engine_completion),
+        cmocka_unit_test(test_playback_context_plays_finite_pattern_loop_to_completion),
+        cmocka_unit_test(test_playback_context_applies_envelope_on_engine_ticks_with_tempo_prescale),
+        cmocka_unit_test(test_playback_context_clean_start_clears_prior_pitch_state),
+        cmocka_unit_test(test_playback_context_plays_independent_voice_zero_and_one_fixture),
+        cmocka_unit_test(test_malformed_truncated_mdat),
+        cmocka_unit_test(test_malformed_unaligned_track),
+        cmocka_unit_test(test_malformed_out_of_range_pattern),
+        cmocka_unit_test(test_malformed_invalid_active_binding),
+        cmocka_unit_test(test_malformed_invalid_inactive_binding),
+        cmocka_unit_test(test_malformed_invalid_stop_step),
+        cmocka_unit_test(test_malformed_invalid_pattern_contract),
+        cmocka_unit_test(test_malformed_invalid_macro_ordering),
+        cmocka_unit_test(test_malformed_sample_range_overflow),
+        cmocka_unit_test(test_malformed_silent_sample_payload),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

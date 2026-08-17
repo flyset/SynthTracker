@@ -8,8 +8,10 @@ This document describes the self-authored fixture pair used by
 
 ## Normalized module layout
 
-The loader accepts this normalized legacy-compatible layout (the offsets are
-file offsets in `mdat.step8`):
+The private loader validates this normalized, self-authored fixture layout (the
+offsets are file offsets in `mdat.step8`; see `valid_mdat()` in
+`src/playback/tfmx_loader.c` and the focused boundary in
+`tests/playback/test_playback_context.c`):
 
 | Offset | Contents |
 |---|---|

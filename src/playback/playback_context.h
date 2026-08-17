@@ -48,6 +48,12 @@ typedef struct tfmx_voice_snapshot {
     unsigned char volume;
 } tfmx_voice_snapshot;
 
+enum { TFMX_PLAYBACK_SNAPSHOT_VOICE_COUNT = 8 };
+
+typedef struct tfmx_voice_snapshot_set {
+    tfmx_voice_snapshot voice[TFMX_PLAYBACK_SNAPSHOT_VOICE_COUNT];
+} tfmx_voice_snapshot_set;
+
 tfmx_playback_context *tfmx_playback_context_create(void);
 void tfmx_playback_context_destroy(tfmx_playback_context *context);
 int tfmx_playback_context_is_loaded(const tfmx_playback_context *context);
@@ -69,5 +75,8 @@ int tfmx_playback_context_is_complete(const tfmx_playback_context *context);
 tfmx_snapshot_status tfmx_playback_context_snapshot(
     const tfmx_playback_context *context, unsigned int voice,
     tfmx_voice_snapshot *snapshot);
+
+tfmx_snapshot_status tfmx_playback_context_snapshot_all(
+    const tfmx_playback_context *context, tfmx_voice_snapshot_set *snapshot);
 
 #endif

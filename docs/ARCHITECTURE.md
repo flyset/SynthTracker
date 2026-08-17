@@ -31,6 +31,18 @@ back into `editbuf`, and file pointers are converted to array indices.
 Per-song behavior hacks exist as globals: `gemx`, `dangerFreakHack`,
 `oopsUpHack`, `monkeyHack`.
 
+The private copied legacy bridge clears bridge-owned mutable runtime state before
+`TfmxInit()` and `StartSong` rebind it for a fresh start. This prevents a new
+start from inheriting prior playback state. The bridge remains single-global and
+non-reentrant; this is an internal implementation boundary, not a public API or
+adapter change.
+
+The private `src/playback` seam exposes a caller-owned, fixed-eight voice
+snapshot set. Each voice snapshot contains only `active`, `pitch`, and
+`volume`. The snapshot is cached after a successful tick and reset on start and
+replacement load. This is an SDL-free private playback seam; it is single-global
+and non-reentrant, and is not a public API or MCP surface.
+
 The audio path is SDL-bound (`SDL_OpenAudio`, `SDL_MixAudio`) through the SDL
 1.2-era API surface currently used by the engine. SDL 1.1.7 is historical
 legacy context, not an asserted current build dependency.
@@ -115,6 +127,13 @@ implemented paths are `tests/playback/test_playback_context.c` and the
 self-authored fixtures under `tests/fixtures/`; the remaining component paths
 are reserved for future coverage.
 
+The current focused boundary exercises four valid self-authored fixture pairs
+(`step8`, `loop_f1`, `envelope_tempo`, and the two-voice layout) and ten malformed
+self-authored fixture pairs. The private loader recognizes these bounded
+fixtures by byte layout and validated contents, not by filename. The focused
+test boundary is load/start/tick/snapshot/render/completion; it is not a general
+format recognizer or a format-wide compatibility claim.
+
 ## GUI direction
 
 The target interface is GUI-first and uses SDL. Detailed GUI design remains
@@ -133,6 +152,11 @@ These items are not resolved here:
 - The loader → Module Domain Model → Playback Engine contract, including
   ownership and lifetime, validation responsibilities, and whether the model
   carries raw or decoded representations.
+- Audio fingerprinting.
+- Multi-context operation and reentrancy.
+- Dynamic eClock assertions.
+- Direct sample-range predicate coverage.
+- Finite-loop exact-layout corrective tightening.
 - The macro-layer design: how macros are modeled in the new engine (for
   example, arrays of 32-bit words with the opcode in the high byte, versus a
   decoded/typed representation). Deliberately left open in

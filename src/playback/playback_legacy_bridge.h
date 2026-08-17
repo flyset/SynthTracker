@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 #include "tfmx_loader.h"
+#include "playback_context.h"
 
 int tfmx_playback_legacy_bridge_start(const unsigned char *mdat,
                                       size_t mdat_size,
@@ -12,8 +13,7 @@ int tfmx_playback_legacy_bridge_start(const unsigned char *mdat,
                                        const struct tfmx_loader_metadata *metadata,
                                        unsigned int subsong);
 void tfmx_playback_legacy_bridge_reset(void);
-int tfmx_playback_legacy_bridge_tick(int *active, unsigned short *pitch,
-                                     unsigned char *volume);
+int tfmx_playback_legacy_bridge_tick(tfmx_voice_snapshot *snapshots);
 int tfmx_playback_legacy_bridge_is_complete(void);
 
 #endif

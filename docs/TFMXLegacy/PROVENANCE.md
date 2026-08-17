@@ -67,7 +67,7 @@ Nothing in `docs/TFMXLegacy/` is presented as a product of, endorsement by,
 or an official publication of Chris Hülsbeck or any rights holder.
 Hülsbeck's authorship is external knowledge: the local code never names him,
 so statements about him carry the **[external]** marker (see
-`README.md`'s status markers).
+`docs/TFMXLegacy/README.md`'s status markers).
 
 ## Citation rules for this reference
 
@@ -82,7 +82,7 @@ so statements about him carry the **[external]** marker (see
    never assert that the legacy player's behavior is universal original-
    format behavior.
 6. Mark every claim that is not directly code-observable with the tags
-   defined in `README.md`: **[inferred]**, **[unverified]**,
+   defined in `docs/TFMXLegacy/README.md`: **[inferred]**, **[unverified]**,
    **[unsupported]**, **[external]**, **[discrepancy]**.
 7. Record new contradictions in the discrepancy registry below.
 

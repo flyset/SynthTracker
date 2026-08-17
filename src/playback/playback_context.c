@@ -15,6 +15,7 @@ struct tfmx_playback_context {
     int render_ready;
     tfmx_playback_legacy_mixer mixer;
     tfmx_voice_snapshot voice_zero;
+    tfmx_voice_snapshot_set snapshot_cache;
 };
 
 tfmx_playback_context *tfmx_playback_context_create(void)
@@ -64,6 +65,7 @@ tfmx_load_status tfmx_playback_context_load(tfmx_playback_context *context,
     context->render_ready = 0;
     tfmx_playback_legacy_mixer_reset(&context->mixer);
     context->voice_zero = (tfmx_voice_snapshot){ 0, 0, 0 };
+    context->snapshot_cache = (tfmx_voice_snapshot_set){ 0 };
     candidate.mdat = NULL;
     candidate.smpl = NULL;
     tfmx_loader_candidate_dispose(&candidate);
@@ -93,14 +95,14 @@ tfmx_start_status tfmx_playback_context_start(tfmx_playback_context *context,
     context->started = 1;
     context->render_ready = 0;
     tfmx_playback_legacy_mixer_reset(&context->mixer);
+    context->snapshot_cache = (tfmx_voice_snapshot_set){ 0 };
+    context->voice_zero = context->snapshot_cache.voice[0];
     return TFMX_START_SUCCESS;
 }
 
 tfmx_tick_status tfmx_playback_context_tick(tfmx_playback_context *context)
 {
-    int active;
-    unsigned short pitch;
-    unsigned char volume;
+    tfmx_voice_snapshot_set tick_snapshot;
 
     if (context == NULL) {
         return TFMX_TICK_INVALID_ARGUMENT;
@@ -108,10 +110,11 @@ tfmx_tick_status tfmx_playback_context_tick(tfmx_playback_context *context)
     if (!context->started) {
         return TFMX_TICK_NOT_STARTED;
     }
-    if (!tfmx_playback_legacy_bridge_tick(&active, &pitch, &volume)) {
+    if (!tfmx_playback_legacy_bridge_tick(tick_snapshot.voice)) {
         return TFMX_TICK_NOT_STARTED;
     }
-    context->voice_zero = (tfmx_voice_snapshot){ active, pitch, volume };
+    context->snapshot_cache = tick_snapshot;
+    context->voice_zero = context->snapshot_cache.voice[0];
     tfmx_playback_legacy_mixer_begin_tick(&context->mixer, 14318, 44100);
     context->render_ready = 1;
     return TFMX_TICK_SUCCESS;
@@ -162,5 +165,18 @@ tfmx_snapshot_status tfmx_playback_context_snapshot(
         return TFMX_SNAPSHOT_NOT_STARTED;
     }
     *snapshot = context->voice_zero;
+    return TFMX_SNAPSHOT_SUCCESS;
+}
+
+tfmx_snapshot_status tfmx_playback_context_snapshot_all(
+    const tfmx_playback_context *context, tfmx_voice_snapshot_set *snapshot)
+{
+    if (context == NULL || snapshot == NULL) {
+        return TFMX_SNAPSHOT_INVALID_ARGUMENT;
+    }
+    if (!context->started) {
+        return TFMX_SNAPSHOT_NOT_STARTED;
+    }
+    *snapshot = context->snapshot_cache;
     return TFMX_SNAPSHOT_SUCCESS;
 }

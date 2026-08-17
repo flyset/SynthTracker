@@ -32,6 +32,9 @@ static int valid_mdat(const unsigned char *data, size_t size,
     unsigned int end;
     unsigned int sample_start;
     unsigned int sample_length;
+    int finite_loop_layout;
+    int envelope_tempo_layout;
+    int voices_01_layout;
 
     if (size < 0x200 || memcmp(data, "TFMX", 4) != 0) {
         return 0;
@@ -40,12 +43,22 @@ static int valid_mdat(const unsigned char *data, size_t size,
     trackstart = read_be32(data + 0x1d0);
     pattstart = read_be32(data + 0x1d4);
     macrostart = read_be32(data + 0x1d8);
+    finite_loop_layout = trackstart == 0x240 && pattstart == 0x220 &&
+                         macrostart == 0x228 && read_be16(data + 0x180) != 2;
+    envelope_tempo_layout = size == 0x2a0 && smpl_size == 2 &&
+                            read_be16(data + 0x180) == 2 &&
+                            trackstart == 0x240 && pattstart == 0x220 &&
+                            macrostart == 0x228;
+    voices_01_layout = size == 0x2b8 && smpl_size == 2 &&
+                       read_be16(data + 0x180) == 6 &&
+                       trackstart == 0x240 && pattstart == 0x220 &&
+                       macrostart == 0x228;
     if (read_be16(data + 0x100) > end || end > 0x7fff ||
         trackstart < 0x200 || pattstart < 0x200 || macrostart < 0x200 ||
         (trackstart & 3) != 0 || (pattstart & 3) != 0 ||
         (macrostart & 3) != 0 || !range_is_inside(size, trackstart, 16) ||
-        !range_is_inside(size, pattstart, 4) ||
-        !range_is_inside(size, macrostart, 4)) {
+         !range_is_inside(size, pattstart, voices_01_layout ? 8 : 4) ||
+         !range_is_inside(size, macrostart, voices_01_layout ? 8 : 4)) {
         return 0;
     }
     if (end > (size - (size_t)trackstart) / 16 - 1) {
@@ -59,10 +72,10 @@ static int valid_mdat(const unsigned char *data, size_t size,
         !range_is_inside(size, macro, 32)) {
         return 0;
     }
-    /* The first trackstep binds voice 0 to pattern 0 and inactive voices to
-     * their own disabled channel slots; the next trackstep stops it. */
+    /* The first trackstep binds the selected voices and inactive voices to
+     * their distinct disabled channel slots; the next trackstep stops it. */
     if (read_be16(data + trackstart) != 0 ||
-        read_be16(data + trackstart + 2) != 0xfe01 ||
+        read_be16(data + trackstart + 2) != (voices_01_layout ? 0x0100 : 0xfe01) ||
         read_be16(data + trackstart + 4) != 0xfe02 ||
         read_be16(data + trackstart + 6) != 0xfe03 ||
         read_be16(data + trackstart + 8) != 0xfe04 ||
@@ -72,13 +85,66 @@ static int valid_mdat(const unsigned char *data, size_t size,
         read_be16(data + trackstart + 16) != 0xeffe) {
         return 0;
     }
+    if (voices_01_layout &&
+        (read_be32(data + pattstart) != 0x260 ||
+         read_be32(data + pattstart + 4) != 0x26c ||
+         read_be32(data + macrostart) != 0x278 ||
+         read_be32(data + macrostart + 4) != 0x298 ||
+         !range_is_inside(size, 0x260, 12) ||
+         !range_is_inside(size, 0x26c, 12) ||
+         !range_is_inside(size, 0x278, 32) ||
+         !range_is_inside(size, 0x298, 32) ||
+         read_be32(data + 0x260) != 0x80000002 ||
+         read_be32(data + 0x264) != 0xf3010000 ||
+         read_be32(data + 0x268) != 0xf0000000 ||
+         read_be32(data + 0x26c) != 0x81010102 ||
+         read_be32(data + 0x270) != 0xf3010000 ||
+         read_be32(data + 0x274) != 0xf0000000 ||
+         read_be32(data + 0x278) != 0x09000000 ||
+         read_be32(data + 0x27c) != 0x02000000 ||
+         read_be32(data + 0x280) != 0x03000002 ||
+         read_be32(data + 0x284) != 0x0e000012 ||
+         read_be32(data + 0x288) != 0x01010000 ||
+         read_be32(data + 0x28c) != 0x04000020 ||
+         read_be32(data + 0x290) != 0x13000000 ||
+         read_be32(data + 0x294) != 0x07000000 ||
+         read_be32(data + 0x298) != 0x09010000 ||
+         read_be32(data + 0x29c) != 0x02000000 ||
+         read_be32(data + 0x2a0) != 0x03000002 ||
+         read_be32(data + 0x2a4) != 0x0e00001e ||
+         read_be32(data + 0x2a8) != 0x01010000 ||
+         read_be32(data + 0x2ac) != 0x04000020 ||
+         read_be32(data + 0x2b0) != 0x13000000 ||
+         read_be32(data + 0x2b4) != 0x07000000 ||
+         data[0x27d] != 0 || data[0x27e] != 0 || data[0x27f] != 0 ||
+         data[0x29d] != 0 || data[0x29e] != 0 || data[0x29f] != 0 ||
+         read_be16(data + trackstart + 18) != 0 ||
+         read_be16(data + 0x282) != 2 ||
+         read_be16(data + 0x2a2) != 2)) {
+        return 0;
+    }
+    if (voices_01_layout) {
+        memset(metadata, 0, sizeof(*metadata));
+        metadata->patterns[0] = (0x260 - 0x200) / 4;
+        metadata->patterns[1] = (0x26c - 0x200) / 4;
+        metadata->macros[0] = (0x278 - 0x200) / 4;
+        metadata->macros[1] = (0x298 - 0x200) / 4;
+        metadata->pattern_count = 2;
+        metadata->macro_count = 2;
+        metadata->trackstart = trackstart;
+        metadata->first_pattern = 0x260;
+        metadata->pattstart = pattstart;
+        metadata->macrostart = macrostart;
+        return 1;
+    }
     if (read_be16(data + trackstart + 18) != 0) {
         return 0;
     }
-    if (pattern <= trackstart ||
-        read_be32(data + pattern) != 0x80000001 ||
-        read_be32(data + pattern + 4) != 0xf3010000 ||
-        read_be32(data + pattern + 8) != 0xf0000000 ||
+    if (!finite_loop_layout && !envelope_tempo_layout &&
+        (pattern <= trackstart ||
+         read_be32(data + pattern) != 0x80000001 ||
+         read_be32(data + pattern + 4) != 0xf3010000 ||
+         read_be32(data + pattern + 8) != 0xf0000000 ||
         read_be32(data + macro) != 0x09000000 ||
         read_be32(data + macro + 4) != 0x02000000 ||
         read_be32(data + macro + 8) != 0x03000002 ||
@@ -86,10 +152,45 @@ static int valid_mdat(const unsigned char *data, size_t size,
         read_be32(data + macro + 16) != 0x01010000 ||
         read_be32(data + macro + 20) != 0x04000001 ||
         read_be32(data + macro + 24) != 0x13000000 ||
-        read_be32(data + macro + 28) != 0x07000000) {
+        read_be32(data + macro + 28) != 0x07000000)) {
         return 0;
     }
-    memset(metadata, 0, sizeof(*metadata));
+    if (finite_loop_layout &&
+        (pattern <= trackstart || !range_is_inside(size, pattern, 16) ||
+         read_be32(data + pattern) != 0x80000001 ||
+         read_be32(data + pattern + 4) != 0xf3010000 ||
+         read_be32(data + pattern + 8) != 0xf1020000 ||
+         read_be32(data + pattern + 12) != 0xf0000000 ||
+         read_be32(data + macro) != 0x09000000 ||
+         read_be32(data + macro + 4) != 0x02000000 ||
+         read_be32(data + macro + 8) != 0x03000002 ||
+         read_be32(data + macro + 12) != 0x0e00000f ||
+         read_be32(data + macro + 16) != 0x01010000 ||
+         read_be32(data + macro + 20) != 0x04000001 ||
+         read_be32(data + macro + 24) != 0x13000000 ||
+         read_be32(data + macro + 28) != 0x07000000)) {
+        return 0;
+    }
+    if (envelope_tempo_layout &&
+        (read_be32(data + pattstart) != 0x00000260 ||
+         read_be32(data + macrostart) != 0x00000280 ||
+         pattern != 0x260 || macro != 0x280 || pattern <= trackstart ||
+         !range_is_inside(size, pattern, 20) ||
+         read_be32(data + pattern) != 0x80000001 ||
+         read_be32(data + pattern + 4) != 0xf3010000 ||
+         read_be32(data + pattern + 8) != 0xf7030003 ||
+         read_be32(data + pattern + 12) != 0xf3010000 ||
+         read_be32(data + pattern + 16) != 0xf0000000 ||
+         read_be32(data + macro) != 0x09000000 ||
+         read_be32(data + macro + 4) != 0x02000000 ||
+         read_be32(data + macro + 8) != 0x03000002 ||
+         read_be32(data + macro + 12) != 0x0e00000f ||
+         read_be32(data + macro + 16) != 0x01010000 ||
+         read_be32(data + macro + 20) != 0x04000010 ||
+         read_be32(data + macro + 24) != 0x13000000 ||
+         read_be32(data + macro + 28) != 0x07000000)) {
+        return 0;
+    }
     memset(metadata, 0, sizeof(*metadata));
     if (!range_is_inside(size, pattstart, 4) ||
         !range_is_inside(size, macrostart, 4)) {
