@@ -155,5 +155,5 @@ Before performing the first Mnemosyne operation in each session:
   compatibility build when applicable; excludes minor commits.
 - **Read when:** the task requires the history of completed TFMX Tracks or
   releases.
-- **Write when:** a completed TFMX Track or release has been committed and
+- **Write when:** a completed Track or release has been committed and
   pushed.
