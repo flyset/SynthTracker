@@ -8,8 +8,8 @@
 #include <stdarg.h>
 #include <cmocka.h>
 
-#include "../../src/playback_context.h"
-#include "../../src/tfmx_loader.h"
+#include "../../src/playback/playback_context.h"
+#include "../../src/playback/tfmx_loader.h"
 
 static void test_loader_normalizes_fixture_tables(void **state)
 {

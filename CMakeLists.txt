@@ -65,15 +65,16 @@ add_test(
 
 add_executable(test_playback_context
     tests/playback/test_playback_context.c
-    src/playback_context.c
-    src/tfmx_loader.c
-    src/playback_legacy_bridge.c
-    src/playback_legacy_mixer.c
+    src/playback/playback_context.c
+    src/playback/tfmx_loader.c
+    src/playback/playback_legacy_bridge.c
+    src/playback/playback_legacy_mixer.c
     src/player.c
 )
 target_include_directories(test_playback_context PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/playback
 )
 target_compile_definitions(test_playback_context PRIVATE
     TFMX_SOURCE_ROOT="${CMAKE_SOURCE_DIR}"

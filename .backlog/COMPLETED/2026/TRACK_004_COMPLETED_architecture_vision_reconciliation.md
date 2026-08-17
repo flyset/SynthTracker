@@ -99,10 +99,10 @@ Current inventory
 - `docs/ARCHITECTURE.md` records target-only responsibilities—Editor, Loader/Writer, Module Domain Model, distinct Sequencing and Synthesis, Playback Engine, Audio Mixer, Audio Output Port, and CoreAudio Adapter—without asserting they are implemented.
 - The Loader/Writer → Module Domain Model → Playback Engine contract remains open, including ownership, lifetime, validation, and raw-versus-decoded representation. Detailed SDL GUI and CoreAudio integration remain open.
 - `src/tfmx.c` supplies the executable entry point, CLI parsing, loading, and format detection; `src/player.c` supplies legacy sequencing/interpreter behavior; `src/audio.c` supplies SDL-backed mixing/output behavior. No GUI, Editor, Module Domain Model, Audio Output Port, or CoreAudio Adapter is implemented.
-- Track 003 remains a DRAFT planning record for playback-seam architecture and is aligned with the approved future SDL GUI/CoreAudio direction.
+- When Track 004 completed, Track 003 was a DRAFT planning record for playback-seam architecture and was aligned with the approved future SDL GUI/CoreAudio direction.
 
 Artifacts
-- [`TRACK_003_DRAFT_playback_seam_architecture.md`](../../DRAFT/2026/TRACK_003_DRAFT_playback_seam_architecture.md) — related DRAFT architecture/seam planning and unresolved-contract record.
+- Track 003 — related playback-seam architecture planning and unresolved-contract record at the time of this Track's completion.
 - [`README.md`](../../../README.md) — current user-facing status and orientation.
 - [`docs/VISION.md`](../../../docs/VISION.md) — current product intent, boundaries, and future direction.
 - [`docs/ARCHITECTURE.md`](../../../docs/ARCHITECTURE.md) — current implementation inventory and architecture decisions.
