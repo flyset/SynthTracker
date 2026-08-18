@@ -568,7 +568,7 @@ static void test_playback_context_plays_finite_pattern_loop_to_completion(void *
         }
     }
 
-    assert_true(repeated_events > 1);
+    assert_int_equal(repeated_events, 6);
     assert_true(non_silent_renders > 0);
     assert_true(tfmx_playback_context_is_complete(context));
     assert_true(tick < 128);

@@ -17,8 +17,10 @@ The four pattern words at `0x260` are `0x80000001`, `0xF3010000`,
 `0xF1020000`, and `0xF0000000`. The `0xF1` word has count byte `0x02` and
 target step `0`; its control-flow interpretation is **[inferred]** from the
 local `DoTrack` implementation. The repository-observed trace records six
-repetitions by tick 85; that observation is limited to this fixture and is not
-universal TFMX behavior.
+qualifying voice-0 snapshot observations by tick 85, where `active`, `pitch`,
+and `volume` are all nonzero; this is not a count of `0xF1` dispatches or a
+statement about general loop-iteration semantics. The observation is limited
+to this fixture and is not universal TFMX behavior.
 
 The eight macro words at `0x270` are `0x09000000`, `0x02000000`, `0x03000002`,
 `0x0E00000F`, `0x01010000`, `0x04000001`, `0x13000000`, and `0x07000000`.
