@@ -26,6 +26,10 @@ are marked **open** and are not defined here.
 - **Channel** — the per-voice interpreter state (`struct Channel`,
   `include/player.h`): active macro pointer/step/number, flow flags, sample
   addressing, and effect state.
+- **Playback context** — a playback-session object. Its current private
+  bridge-backed execution is single-global and non-reentrant. TFMX supports at
+  most one simultaneously active playback context; multiple channels or voices
+  within one context are not independent playback contexts.
 - **Effects** — per-tick channel modifiers applied after macro stepping
   (`DoEffects`, `src/player.c:504`): AddBegin sample-offset slide, vibrato,
   portamento, envelope; plus a global master-volume fade.
@@ -40,8 +44,8 @@ are marked **open** and are not defined here.
   TFMX module data. Its loader, writer, playback, ownership, lifetime,
   validation, and raw-versus-decoded contracts are **open**; it is not
   implemented by the current transitional CLI.
-- **GUI-first DAW** — the future product direction: a C23 TFMX DAW using SDL
-  on macOS.
+- **GUI-first DAW** — the future product direction: a modern C TFMX DAW using
+  SDL on macOS.
 - **Audio Output Port** — future/proposed device-independent playback-output
   boundary. **CoreAudio Adapter** is the intended macOS implementation; the
   integration and API are **open**.

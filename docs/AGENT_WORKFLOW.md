@@ -13,6 +13,10 @@
 - Read `docs/ARCHITECTURE.md` before changing public C APIs, package boundaries,
   TFMX module or file-format semantics, playback or audio behavior, future
   persistent DAW project formats, or audio-output boundaries.
+- Review the relevant entries in `docs/ASR.md` and applicable ADRs indexed by
+  `docs/ADR.md` before making architectural or contract changes. Record new
+  architectural decisions as ADRs only after approval; keep product-management
+  decisions in project memory.
 - Explicitly assess and document the intended compatibility impact on existing
   TFMX modules and the documented trackstep, pattern, macro, timing, and audio
   semantics; compatibility need not be perpetual.
@@ -35,8 +39,8 @@
 - When public C APIs or package boundaries, TFMX module or file-format
   semantics or compatibility, playback or audio behavior, persistent DAW
   project formats or versioning, or audio-output boundaries change, update the
-  applicable `README.md`, `docs/ARCHITECTURE.md`, and `docs/GLOSSARY.md` in the
-  same change.
+  applicable `README.md`, `docs/ARCHITECTURE.md`, `docs/ASR.md`, relevant ADRs,
+  and `docs/GLOSSARY.md` in the same change.
 
 ## Backlog Work
 

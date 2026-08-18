@@ -14,15 +14,17 @@ loop, or call another macro. This document gives the reimplementation a
 shared, evidence-based picture of that layer before design work starts, and
 keeps external context about the format's origins clearly separate from what
 the local code actually does. Any future TFMX-owned macro implementation and
-its tests remain C23; no C++ port is planned.
+its tests must use C23 or a later ISO C standard; C++ is not a project
+direction.
 
 ## Why macros matter
 
-- **Compatibility floor.** The porting decision in `docs/ARCHITECTURE.md`
-  makes "loads and plays existing TFMX modules correctly" the floor.
-  Interpreter semantics — the meaning of macro opcodes and their control flow
-  — are one of the four preserved semantic layers (loops, gosub, waits,
-  key-up).
+- **Compatibility floor.** [`docs/ASR.md`](ASR.md) requires existing TFMX
+  modules to load and play with correct musical behavior; bit-identical
+  rendered audio is not required. [`ADR-001`](adr/ADR-001-new-engine-not-line-by-line-port.md)
+  records the new-engine approach informed by legacy ideas and semantics.
+  Compatibility evidence must consider format, interpreter, timing, and audio
+  semantics; these are evidence areas, not a fixed taxonomy.
 - **They carry the musical character.** Everything that makes an instrument
   sound like itself — sample selection and looping, envelopes, vibrato,
   portamento, volume splits, key-up behavior — is expressed in macros (see
@@ -65,7 +67,7 @@ in `docs/TFMXLegacy/PROVENANCE.md`.
 - **State.** All of this lives in `struct Channel` (`include/player.h`): the
   macro pointer/step/number, flow flags, sample addressing, and effect state.
 - **Known discrepancy.** The opcode count is recorded three ways (42-name
-  debug table / 44 `case` labels / 47 as stated in `docs/ARCHITECTURE.md`);
+  debug table / 44 `case` labels / 47 in historical repository documentation);
   the conflict is registered in `docs/TFMXLegacy/PROVENANCE.md` and is
   **unresolved**. This document does not pick a side.
 
@@ -107,6 +109,9 @@ These are open; none are resolved here:
   summarized here.
 - `docs/TFMXLegacy/PROVENANCE.md` — provenance and citation policy, and the
   discrepancy registry.
-- `docs/ARCHITECTURE.md` — the porting approach and the four preserved
-  semantic layers; this document feeds the interpreter-semantics layer.
+- `docs/ARCHITECTURE.md` — the concise current-system overview and architecture
+  entrypoint.
+- `docs/ASR.md` — the compatibility requirement and its evidence areas.
+- `docs/adr/ADR-001-new-engine-not-line-by-line-port.md` — the accepted
+  new-engine approach informed by legacy ideas and semantics.
 - `docs/GLOSSARY.md` — canonical terminology, including "macro (soundmacro)".

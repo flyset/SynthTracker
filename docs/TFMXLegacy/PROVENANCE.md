@@ -96,16 +96,19 @@ their occurrence sites.
    - `macrocmds[]` (the debug-name table) has 42 entries — `src/tfmx.c:425`,
      `src/player.c:839`.
    - `RunMacro` has 44 `case` labels by direct count — `src/player.c:134`–`502`.
-   - `docs/ARCHITECTURE.md` states "RunMacro (47 macro opcodes)".
+   - A historical repository-documentation statement records "RunMacro (47
+     macro opcodes)" [discrepancy]; this is not a source-derived count.
    Which number is canonical is unresolved; see `MACROS.md`.
 2. **`0xFD` pattern command label vs. behavior.** Both `pattcmds[]` tables
    label index 13 "No entry", but the interpreter implements `0xFD` as the
    Cue command (`idb.Cue[b1 & 3] = w1`, `src/player.c:1026`–`1029`).
    See `PATTERNS.md`.
-3. **SDL version.** `README.md` states SDL 1.1.7; `CMakeLists.txt`
-   configures SDL2 via `sdl-config`, and the code uses the SDL 1.2-era API
-   (`SDL_OpenAudio`, `SDL_MixAudio`). `docs/ARCHITECTURE.md` notes the
-   "SDL 1.2-era API; the README states SDL 1.1.7". See `AUDIO.md`.
+3. **SDL version and build identification.** `README.md` and
+   `docs/ARCHITECTURE.md` identify SDL 1.1.7 as historical context; the code
+   uses the SDL 1.2-era API (`SDL_OpenAudio`, `SDL_MixAudio`). `CMakeLists.txt`
+   labels the setup SDL2 yet uses an unversioned `sdl-config` and has no
+   explicit SDL-version verification. The provider/version relationship
+   remains unresolved. See `AUDIO.md`.
 4. **Single-file (TFHD) loading.** The loader has single-file paths
    (`src/tfmx.c:248`–`251`, `352`–`372`) but the TFHD offsets
    (`nTFhd_offset`, `nTFhd_mdatsize`, `nTFhd_smplsize`) are never assigned;

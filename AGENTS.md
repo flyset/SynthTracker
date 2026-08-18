@@ -18,8 +18,9 @@ and others) and extending the legacy format rather than replacing it.
 - Keep memory visible, consent-based, and easy to delete.
 - Favor simple filesystem-backed schemas before infrastructure complexity.
 - Keep all TFMX-owned production and test source, including the future GUI/DAW,
-  in C23. A C++ port is not planned; implementation languages for third-party
-  dependencies are evaluated separately.
+  in C23 or a later ISO C standard. C++ is not a project direction;
+  implementation languages for third-party dependencies are evaluated
+  separately.
 
 ## Guardrails
 
@@ -36,15 +37,16 @@ and others) and extending the legacy format rather than replacing it.
 
 ## Current Scope
 
-- Refactoring the legacy C engine (src/, include/) into a reusable C playback
-  core under the C23 product boundary.
+- Refactoring the legacy C engine (src/, include/) into a reusable modern C
+  playback core under the modern C product boundary. C23 remains the current
+  build and validation baseline.
 - Preserving compatibility with existing TFMX modules and the SDL-era audio
   features exposed through the current SDL 1.2-era API surface (stereo
   blending, low-pass filter); SDL 1.1.7 remains historical context.
-- Designing the future C23 GUI DAW layer on top of the engine; no GUI or editing
-  functionality is implemented yet.
-- Phase 5 is C23 product readiness: a reusable C playback core and C-based
-  GUI/DAW foundation.
+- Designing the future modern C GUI DAW layer on top of the engine; no GUI or
+  editing functionality is implemented yet.
+- Phase 5 is Modern C product readiness: a reusable C playback core and a
+  modern C GUI/DAW foundation.
 - Consult `.backlog/` for the current Track status; implementation requires an ACTIVE Track.
 
 ## Project Memory
@@ -104,7 +106,10 @@ TBD
 - The `docs/` folder is the home for durable project documentation beyond the README.
 - Use `README.md` for user-facing setup, status, and quick orientation.
 - Use `VISION.md` for product intent, boundaries, non-goals, and future direction.
-- Use `docs/ARCHITECTURE.md` for current code organization and architectural rules.
+- Use `docs/ARCHITECTURE.md` for the concise current-system overview and architecture entrypoint.
+- Use `docs/ADR.md` as the index and governance for individual architectural decision records under `docs/adr/`.
+- Use `docs/ASR.md` as the register of architecturally significant requirements.
+- Keep product direction, scope, priorities, roadmaps, and their rationale in project memory, not ADRs or ASRs.
 - Use `docs/AGENT_WORKFLOW.md` for contribution gates and verification expectations.
 - Use `docs/GLOSSARY.md` for canonical product and protocol terminology.
 - Use `docs/TFMXLegacy/` as the self-contained reference for the original
@@ -112,6 +117,6 @@ TBD
   Before writing or quoting legacy-format content, read and follow the
   citation and copyright policy in `docs/TFMXLegacy/PROVENANCE.md`.
 - Add new focused docs under `docs/` when a topic becomes too detailed for the README.
-- Keep `README.md`, `docs/ARCHITECTURE.md`, and `docs/GLOSSARY.md` updated when changing public MCP behavior, endpoints, package layout, or MCP structure.
+- Keep `README.md`, `docs/ARCHITECTURE.md`, `docs/ASR.md`, relevant ADRs, and `docs/GLOSSARY.md` updated when changing public MCP behavior, endpoints, package layout, architectural boundaries, or MCP structure.
 - Put implementation-specific rules in the nearest scoped `AGENTS.md`; keep this root file focused on project-wide constraints.
 - Use `.backlog/README.md` for local Track governance and `.backlog/PORE.md` for problem-oriented requirements.

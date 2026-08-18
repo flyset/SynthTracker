@@ -82,7 +82,10 @@ Before performing the first Mnemosyne operation in each session:
 - **Scope:** `project`
 -- **Namespace:** `tfmx`
 - **Collection:** `decisions`
-- **Holds:** durable TFMX decisions with their rationale and consequences.
+- **Holds:** durable TFMX product-management decisions with their rationale and
+  consequences, including product direction, scope, priorities, and roadmaps.
+  Architectural decisions belong in the ADR records indexed by `docs/ADR.md`,
+  while architecturally significant requirements belong in `docs/ASR.md`.
 - **Read when:** current work may be constrained by an established choice.
 - **Write when:** a durable host-project choice should guide future work.
 

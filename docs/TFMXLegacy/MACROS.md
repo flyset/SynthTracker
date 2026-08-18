@@ -169,7 +169,9 @@ Three different numbers appear for "how many macro opcodes exist":
 - `RunMacro` — the interpreter — has **44 case labels** by direct count
   (`src/player.c:134`–`502`), covering opcodes `0x00`–`0x31` (minus none;
   including the `0x30`/`0x31` cases beyond the name table).
-- `docs/ARCHITECTURE.md` states "`RunMacro` (47 macro opcodes)".
+- A historical repository-documentation statement records "`RunMacro` (47
+  macro opcodes)" [discrepancy]; this is not a source-derived count or a
+  settled canonical value.
 
 Which count is canonical is **unresolved** — see `PROVENANCE.md`. The
 numbers are recorded here as facts about the current snapshot; no resolution

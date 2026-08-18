@@ -10,8 +10,9 @@ stereo blend, ring buffer, SDL callback, timing conversion),
 
 The audio path uses the SDL 1.x-era API: `SDL_OpenAudio`,
 `SDL_PauseAudio`, `SDL_MixAudio` (`src/audio.c:397`–`429`, `577`).
-`README.md` describes the dependency as SDL 1.1.7; `CMakeLists.txt`
-configures SDL2 via `sdl-config` ([discrepancy], see `PROVENANCE.md`).
+`README.md` identifies SDL 1.1.7 as historical legacy context, not a current
+build dependency; `CMakeLists.txt` labels its setup SDL2 but discovers an
+unversioned `sdl-config` ([discrepancy], see `PROVENANCE.md`).
 Thread synchronization uses a pthread mutex/condition pair
 (`src/audio.c:62`–`63`, `fill_audio`).
 

@@ -92,13 +92,14 @@ authoritative citations.
 
 ## Relationship to other repository documents
 
-`docs/ARCHITECTURE.md` describes the porting approach and the four preserved
-semantic layers (file format, interpreter, timing model, audio model);
-`docs/VISION.md` states product intent. This reference is the detailed,
-evidence-cited counterpart to the "Current legacy state" section of
-`docs/ARCHITECTURE.md`. Where `docs/ARCHITECTURE.md` and this reference
-disagree (for example, the macro opcode count), the discrepancy is recorded
-in `PROVENANCE.md` and marked here as **[discrepancy]**.
+`docs/ARCHITECTURE.md` is the concise current-system overview and architecture
+entrypoint. [`ADR-001`](../adr/ADR-001-new-engine-not-line-by-line-port.md)
+records the new-engine approach, and [`ASR-002`](../ASR.md) records the
+compatibility requirement. `docs/VISION.md` states product intent. This
+reference is the detailed, evidence-cited counterpart to the current legacy
+system overview. Where repository documents or local source disagree (for
+example, the macro opcode count), the discrepancy is recorded in
+`PROVENANCE.md` and marked here as **[discrepancy]**.
 
 ## Known limitations
 
