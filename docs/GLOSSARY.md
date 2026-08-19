@@ -5,6 +5,10 @@ code-verified against the implementation; the evidence-cited reference is
 `TFMXLegacy/` (start at `TFMXLegacy/README.md`). Target-only terms are
 decision-defined, explicitly marked, and are not claims about implementation.
 
+- **SynthTracker** — the product and repository identity. **TFMX** denotes the
+  legacy format, modules, semantics, and temporary compatibility lineage; it
+  does not name the DAW product.
+
 - **Macro (soundmacro)** — the instrument-level event stream in a TFMX
   module. A channel runs one macro per note, selected by the note event's
   macro number; macros control sample playback, volume, pitch effects, waits,
@@ -44,8 +48,12 @@ decision-defined, explicitly marked, and are not claims about implementation.
   TFMX module data. Its loader, writer, playback, ownership, lifetime,
   validation, and raw-versus-decoded contracts are **open**; it is not
   implemented by the current transitional CLI.
-- **GUI-first DAW** — the future product direction: a modern C TFMX DAW using
-  SDL on macOS.
+- **GUI-first DAW** — the future SynthTracker product direction: a modern C DAW
+  using SDL on macOS.
+- **Phase 4 compatibility scaffold** — temporary development policy to preserve
+  current TFMX behavior where practical. Phase 3 is delivered; Phase 4 is next.
+  Compatibility impact is assessed per Phase 4 Track and appropriate evidence
+  retained. It is not a SynthTracker v1 compatibility promise.
 - **Audio Output Port** — future/proposed device-independent playback-output
   boundary. **CoreAudio Adapter** is the intended macOS implementation; the
   integration and API are **open**.

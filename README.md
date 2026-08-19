@@ -1,28 +1,31 @@
-# TFMX.cpp
+# SynthTracker
 
-A **modern C reimplementation and refactor** of the legacy **TFMX music
-player**, with SDL 1.1.7 retained as historical legacy context. The repository
-identity remains **TFMX.cpp**.
+SynthTracker is the product and repository identity. It is a modern C product
+with a transitional legacy CLI and a future GUI-first DAW. TFMX denotes the
+legacy format, modules, semantics, and temporary compatibility lineage.
 
 ## Overview
-TFMX.cpp is one system with a current transitional legacy CLI plus SDL-backed
+SynthTracker is one system with a current transitional legacy CLI plus SDL-backed
 audio. It aims to **refactor and reimplement** the legacy **TFMX player** in
-modern C, with a future GUI-first TFMX DAW using SDL. All TFMX-owned production
+modern C, with a future GUI-first DAW using SDL. All SynthTracker-owned production
 and test source, including the future GUI/DAW, must use C23 or a later ISO C
 standard; C++ is not a project direction.
-Third-party dependency implementation languages are evaluated separately. The
-goal is to maintain compatibility with existing TFMX modules while improving
-performance, maintainability, and user experience.
+Third-party dependency implementation languages are evaluated separately.
+During Phase 4, preserve current TFMX behavior where practical as a
+temporary development scaffold; every Phase 4 Track must assess compatibility
+impact and retain appropriate evidence. This is not a SynthTracker v1
+compatibility promise. The product also aims to improve performance,
+maintainability, and user experience.
 
 ### Current Status
 - **Refactoring progress**: Initial refactoring and setup for the modern C product
   boundary.
 - **UI Integration**: Planning and design for a future GUI-first DAW; no GUI or
   editing functionality is implemented yet.
-- **Legacy Compatibility**: Retaining support for legacy TFMX modules and the SDL 1.2-era audio features currently used by the engine, including stereo blending and low-pass filtering.
+- **Current SDL audio features**: The SDL 1.2-era audio features include stereo
+  blending and low-pass filtering.
 - **Platform scope**: macOS only. Linux and other platform support are outside the current project scope; adding a platform requires a new explicit roadmap decision.
-- **Roadmap**: Phase 5 is **Modern C product readiness**: a reusable C playback
-  core and a modern C GUI/DAW foundation.
+- **Phase status**: Phase 3 is delivered; Phase 4 is next.
 
 ## Features
 - Plays **most TFMX modules**, including:

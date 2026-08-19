@@ -13,18 +13,19 @@ address and length, with which volume and pitch effects, and when to wait,
 loop, or call another macro. This document gives the reimplementation a
 shared, evidence-based picture of that layer before design work starts, and
 keeps external context about the format's origins clearly separate from what
-the local code actually does. Any future TFMX-owned macro implementation and
+the local code actually does. Any future SynthTracker-owned macro implementation and
 its tests must use C23 or a later ISO C standard; C++ is not a project
 direction.
 
 ## Why macros matter
 
-- **Compatibility floor.** [`docs/ASR.md`](ASR.md) requires existing TFMX
-  modules to load and play with correct musical behavior; bit-identical
-  rendered audio is not required. [`ADR-001`](adr/ADR-001-new-engine-not-line-by-line-port.md)
-  records the new-engine approach informed by legacy ideas and semantics.
-  Compatibility evidence must consider format, interpreter, timing, and audio
-  semantics; these are evidence areas, not a fixed taxonomy.
+- **Temporary Phase 4 compatibility scaffold.** Phase 3 is delivered; Phase 4
+  is next. During Phase 4, preserve current TFMX behavior where practical,
+  including macro, timing, interpreter, and audio behavior. Every Phase 4 Track
+  must assess compatibility impact and retain appropriate evidence. This is not a
+  SynthTracker v1 compatibility promise.
+  [`ADR-001`](adr/ADR-001-new-engine-not-line-by-line-port.md) records the
+  new-engine approach informed by legacy ideas and semantics.
 - **They carry the musical character.** Everything that makes an instrument
   sound like itself — sample selection and looping, envelopes, vibrato,
   portamento, volume splits, key-up behavior — is expressed in macros (see
@@ -33,9 +34,9 @@ direction.
   trackstep → pattern → macro (`docs/ARCHITECTURE.md`); per-channel state and
   per-tick effects hang off macro execution (`DoMacro`, `DoEffects`,
   `src/player.c`).
-- **They are a future editing target.** The GUI-first DAW will compose and edit TFMX
-  modules (per `docs/VISION.md`), so macros will be first-class objects in the
-  product, not just opaque data the player walks.
+- **They inform future editing concepts.** TFMX macro semantics inform
+  SynthTracker’s future editing concepts; the editable model and format remain
+  open.
 
 ## Code-verified behavior (summary)
 
@@ -108,7 +109,7 @@ These are open; none are resolved here:
   discrepancy registry.
 - `docs/ARCHITECTURE.md` — the concise current-system overview and architecture
   entrypoint.
-- `docs/ASR.md` — the compatibility requirement and its evidence areas.
+- `docs/ASR.md` — historical ASR-002 evidence and the current Phase 4 policy.
 - `docs/adr/ADR-001-new-engine-not-line-by-line-port.md` — the accepted
   new-engine approach informed by legacy ideas and semantics.
 - `docs/GLOSSARY.md` — canonical terminology, including "macro (soundmacro)".

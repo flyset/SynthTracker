@@ -2,23 +2,24 @@
 
 ## Purpose
 
-TFMX.cpp is one system containing one application container: a modern,
-maintainable reimplementation of the legacy TFMX music engine, originally built
-for SDL 1.1.7. The current transitional product is one legacy CLI application
-with SDL-backed audio. The future target is that same system's GUI-first TFMX
-digital audio workstation (DAW) using SDL, while keeping compatibility with
-existing TFMX modules (MasterBlazer, Turrican II/III, Z-Out, and others).
+SynthTracker is one system containing one application container: a modern,
+maintainable C product and repository. The current transitional product is one
+legacy CLI application with SDL-backed audio. The future target is that same
+system's GUI-first digital audio workstation (DAW) using SDL. TFMX denotes the
+legacy format, modules, semantics, and temporary compatibility lineage.
 
 ## What it is
 
-- A current transitional CLI that plays TFMX modules, with SDL-backed audio.
+- A current transitional CLI that plays TFMX modules (including MasterBlazer,
+  Turrican II/III, Z-Out, and others), with SDL-backed audio.
 - A narrow internal and emerging playback seam being refactored out of the
   legacy C player; it is not yet a completed reusable playback core.
-- A future modern C GUI-first DAW foundation. All TFMX-owned production and test
+- A future modern C GUI-first DAW foundation. All SynthTracker-owned production and test
   source must use C23 or a later ISO C standard; C++ is not a project
   direction. Third-party dependency implementation languages remain separately
   evaluated.
-- A future DAW target whose native format is TFMX.
+- A future DAW target that continues the TFMX legacy format lineage; this does
+  not make TFMX the product identity or establish a v1 compatibility promise.
 
 ## What it is not (non-goals)
 
@@ -27,19 +28,19 @@ existing TFMX modules (MasterBlazer, Turrican II/III, Z-Out, and others).
 - Not a sample editor or synthesizer.
 - Not a cross-platform application: macOS is the current and only platform
   scope.
-- Not a replacement for the legacy format: TFMX modules remain the native
-  format.
+- Not a replacement for the legacy format: TFMX modules remain part of the
+  legacy format lineage.
 
 ## Guiding principles
 
-- Legacy compatibility first: existing modules keep playing as the engine
-  evolves.
-- Existing TFMX modules must load and play with correct musical behavior;
-  bit-identical rendered audio is not required.
+- During Phase 4, preserve current TFMX behavior where practical only as a
+  temporary development scaffold. Every Phase 4 Track must assess compatibility
+  impact and retain appropriate evidence. This is not a SynthTracker v1
+  compatibility promise.
 - The future GUI is a layer on top of a reusable playback core; the current
   implementation has only a narrow internal and emerging playback seam.
-- TFMX is the native format; the project extends it over time rather than
-  replacing it.
+- TFMX remains the legacy format and semantic lineage; future format decisions
+  remain subject to approved project direction.
 
 ## Open questions
 
@@ -51,8 +52,7 @@ existing TFMX modules (MasterBlazer, Turrican II/III, Z-Out, and others).
 
 - Layered roadmap: establish the reusable playback core, then the GUI DAW (pattern editing,
   composing, mixing). Format extension comes after the DAW exists.
-- Phase 5 is **Modern C product readiness**, targeting a reusable C playback
-  core and a modern C GUI/DAW foundation.
+- Phase 3 is delivered. Phase 4 is next: component extraction.
 - The intended macOS Audio Output Adapter is CoreAudio. Detailed GUI design
   and CoreAudio integration remain open.
 - Detailed sequencing is deferred until the open questions resolve.

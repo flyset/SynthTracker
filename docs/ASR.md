@@ -9,8 +9,9 @@ direction, scope, priorities, and roadmaps are held in project memory.
 
 - **ID** — immutable `ASR-NNN` identifier.
 - **Requirement** — the normative architectural statement.
-- **Status** — `Current` for the implemented/current boundary or `Target` for
-  an approved future requirement that is not implemented.
+- **Status** — `Current` for the implemented/current boundary, `Target` for an
+  approved future requirement that is not implemented, or `Retired (historical)`
+  for a former requirement retained as historical evidence.
 - **Verification** — current evidence or the validation expected when the
   target requirement is implemented.
 - **Related ADRs** — accepted or proposed decisions that satisfy or constrain
@@ -20,24 +21,28 @@ direction, scope, priorities, and roadmaps are held in project memory.
 
 ### ASR-001 — Modern ISO C source boundary
 
-- **Requirement:** All TFMX-owned production and test source must use C23 or a
+- **Requirement:** All SynthTracker-owned production and test source must use C23 or a
   later ISO C standard.
 - **Status:** Current
 - **Verification:** CMake language standard and repository source/test review.
 - **Related ADRs:** None yet.
 
-### ASR-002 — Preservation of documented compatibility semantics
+### ASR-002 — Historical compatibility evidence record
 
-- **Requirement:** Existing TFMX modules must load and play with correct
-  musical behavior; bit-identical rendered audio is not required.
-  Compatibility evidence must consider format, interpreter, timing, and audio
-  semantics.
-- **Status:** Current
-- **Verification:** Current evidence consists of bounded self-authored fixture
-  coverage, automated component/integration tests, and direct legacy checks; it
-  does not constitute format-wide proof and does not claim format-wide module
-  coverage.
+- **Requirement:** Retired historical requirement: existing TFMX modules were
+  required to load and play with correct musical behavior; bit-identical
+  rendered audio was not required.
+- **Status:** Retired (historical)
+- **Verification:** Historical bounded self-authored fixture coverage,
+  automated component/integration tests, and direct legacy checks remain
+  recorded evidence. This evidence does not constitute format-wide proof or a
+  SynthTracker v1 compatibility promise.
 - **Related ADRs:** [ADR-001](adr/ADR-001-new-engine-not-line-by-line-port.md), [ADR-002](adr/ADR-002-private-sdl-free-playback-evidence-seam.md).
+
+**Current Phase 4 policy:** Phase 3 is delivered; Phase 4 is next. Preserve
+current TFMX behavior where practical only as a temporary development scaffold.
+Every Phase 4 Track must assess compatibility impact and retain appropriate
+evidence. This policy is not a SynthTracker v1 compatibility requirement.
 
 ### ASR-003 — UI-agnostic playback core
 

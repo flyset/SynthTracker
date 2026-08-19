@@ -32,26 +32,28 @@ Before performing the first Mnemosyne operation in each session:
 - **Write when:** an approved, enduring professional fact or circumstance should
   remain available across sessions.
 
-### TFMX Project
+### SynthTracker Project
 
 - **Scope:** `project`
--- **Namespace:** `tfmx`
+- **Namespace:** `tfmx` (stable internal Mnemosyne namespace ID; do not rename)
 - **Collection:** `null`
-- **Holds:** general TFMX project state, constraints, questions, references,
+- **Holds:** general SynthTracker project state, constraints, questions, references,
   and summaries that do not belong in a more specific mapped collection.
-- **Read when:** prior TFMX project context could affect the current task.
+- **Read when:** prior SynthTracker project context could affect the current task.
 - **Write when:** approved durable host-project context has no more specific
   mapped collection.
+
+- **Current phase:** Phase 3 is delivered; Phase 4 is next.
 
 #### Overview
 
 - **Scope:** `project`
 -- **Namespace:** `tfmx`
 - **Collection:** `overview`
-- **Holds:** the living high-level TFMX identity, purpose, boundaries, and
+- **Holds:** the living high-level SynthTracker identity, purpose, boundaries, and
   current shape.
 - **Read when:** a task needs quick host-project orientation.
-- **Write when:** TFMX's high-level identity or capabilities materially change;
+- **Write when:** SynthTracker's high-level identity or capabilities materially change;
   revise the living overview.
 
 #### Roadmaps
@@ -59,7 +61,7 @@ Before performing the first Mnemosyne operation in each session:
 - **Scope:** `project`
 -- **Namespace:** `tfmx`
 - **Collection:** `roadmaps`
-- **Holds:** user-approved, long-range TFMX roadmap sets, including one bounded
+- **Holds:** user-approved, long-range SynthTracker roadmap sets, including one bounded
   canonical index and bounded section records for major phases, sequencing,
   dependencies, intended outcomes, delivered baseline, and shared constraints;
   roadmaps guide direction but do not replace detailed Backlog Tracks.
@@ -82,7 +84,7 @@ Before performing the first Mnemosyne operation in each session:
 - **Scope:** `project`
 -- **Namespace:** `tfmx`
 - **Collection:** `decisions`
-- **Holds:** durable TFMX product-management decisions with their rationale and
+- **Holds:** durable SynthTracker product-management decisions with their rationale and
   consequences, including product direction, scope, priorities, and roadmaps.
   Architectural decisions belong in the ADR records indexed by `docs/ADR.md`,
   while architecturally significant requirements belong in `docs/ASR.md`.
@@ -94,7 +96,7 @@ Before performing the first Mnemosyne operation in each session:
 - **Scope:** `project`
 -- **Namespace:** `tfmx`
 - **Collection:** `critiques`
-- **Holds:** unresolved critiques and questions about TFMX architecture,
+- **Holds:** unresolved critiques and questions about SynthTracker architecture,
   semantics, or product direction.
 - **Read when:** evaluating project weaknesses or planning improvements.
 - **Write when:** a concrete unresolved concern could change project direction.
@@ -104,7 +106,7 @@ Before performing the first Mnemosyne operation in each session:
 - **Scope:** `project`
 -- **Namespace:** `tfmx`
 - **Collection:** `reviews`
-- **Holds:** the living holistic assessment of TFMX strengths, weaknesses,
+- **Holds:** the living holistic assessment of SynthTracker strengths, weaknesses,
   maturity, and priorities.
 - **Read when:** assessing current project health or priorities.
 - **Write when:** the overall assessment materially changes; revise the living
@@ -127,7 +129,7 @@ Before performing the first Mnemosyne operation in each session:
 - **Scope:** `project`
 -- **Namespace:** `tfmx`
 - **Collection:** `issues`
-- **Holds:** concrete observed TFMX defects or operational problems and their
+- **Holds:** concrete observed SynthTracker defects or operational problems and their
   resolution status.
 - **Read when:** diagnosing known or historical host-project problems.
 - **Write when:** a concrete issue is observed that may require project work.
@@ -153,10 +155,10 @@ Before performing the first Mnemosyne operation in each session:
 - **Scope:** `project`
 -- **Namespace:** `tfmx`
 - **Collection:** `changelog`
-- **Holds:** concise TFMX event records for meaningful completed Tracks or
+- **Holds:** concise SynthTracker event records for meaningful completed Tracks or
   releases, including the commit, delivered outcome, validation evidence, and
   compatibility build when applicable; excludes minor commits.
-- **Read when:** the task requires the history of completed TFMX Tracks or
+- **Read when:** the task requires the history of completed SynthTracker Tracks or
   releases.
 - **Write when:** a completed Track or release has been committed and
   pushed.

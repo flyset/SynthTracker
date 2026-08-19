@@ -2,12 +2,10 @@
 
 ## Project Intent
 
-TFMX.cpp is one system: a modern, maintainable reimplementation of the
-legacy TFMX music engine, originally built for SDL 1.1.7. The current
-transitional product is a legacy CLI with SDL-backed audio. The target is a
-GUI-first TFMX digital audio workstation (DAW) using SDL, while preserving
-compatibility with existing modules (MasterBlazer, Turrican II/III, Z-Out,
-and others) and extending the legacy format rather than replacing it.
+SynthTracker is the product and repository identity: a modern, maintainable C
+product with a transitional legacy CLI and a future GUI-first DAW using SDL.
+TFMX denotes the legacy format, modules, semantics, and temporary compatibility
+lineage; it does not name the DAW product.
 
 ## Principles
 
@@ -17,7 +15,7 @@ and others) and extending the legacy format rather than replacing it.
 - Do not store secrets, tokens, private keys, or sensitive personal data.
 - Keep memory visible, consent-based, and easy to delete.
 - Favor simple filesystem-backed schemas before infrastructure complexity.
-- Keep all TFMX-owned production and test source, including the future GUI/DAW,
+- Keep all SynthTracker-owned production and test source, including the future GUI/DAW,
   in C23 or a later ISO C standard. C++ is not a project direction;
   implementation languages for third-party dependencies are evaluated
   separately.
@@ -40,13 +38,17 @@ and others) and extending the legacy format rather than replacing it.
 - Refactoring the legacy C engine (src/, include/) into a reusable modern C
   playback core under the modern C product boundary. C23 remains the current
   build and validation baseline.
-- Preserving compatibility with existing TFMX modules and the SDL-era audio
-  features exposed through the current SDL 1.2-era API surface (stereo
-  blending, low-pass filter); SDL 1.1.7 remains historical context.
+- During Phase 4, preserve current TFMX behavior where practical only as a
+  temporary development scaffold. Every Phase 4 Track must assess compatibility
+  impact and retain appropriate evidence; this is not a SynthTracker v1
+  compatibility promise.
+- Preserve the current SDL-era audio features exposed through the SDL 1.2-era
+  API surface (stereo blending, low-pass filter); SDL 1.1.7 remains historical
+  context.
 - Designing the future modern C GUI DAW layer on top of the engine; no GUI or
   editing functionality is implemented yet.
-- Phase 5 is Modern C product readiness: a reusable C playback core and a
-  modern C GUI/DAW foundation.
+- Phase 3 is delivered. Phase 4 is next: component extraction under the
+  SynthTracker product boundary.
 - Consult `.backlog/` for the current Track status; implementation requires an ACTIVE Track.
 
 ## Project Memory

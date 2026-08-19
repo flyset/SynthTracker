@@ -17,9 +17,11 @@
   `docs/ADR.md` before making architectural or contract changes. Record new
   architectural decisions as ADRs only after approval; keep product-management
   decisions in project memory.
-- Explicitly assess and document the intended compatibility impact on existing
-  TFMX modules and the documented trackstep, pattern, macro, timing, and audio
-  semantics; compatibility need not be perpetual.
+- During Phase 4, explicitly assess and document the intended compatibility
+  impact on existing TFMX modules and the documented trackstep, pattern, macro,
+  timing, interpreter, and audio semantics, and retain appropriate evidence.
+  Preserving current TFMX behavior where practical is a temporary development
+  scaffold only, not a SynthTracker v1 compatibility promise.
 - Keep TFMX component boundaries small, explicit, and independently testable.
   Loader/Writer components may define explicit filesystem behavior, but do not
   introduce general shell-execution or unrestricted filesystem-access
@@ -43,6 +45,8 @@
   and `docs/GLOSSARY.md` in the same change.
 
 ## Backlog Work
+
+Phase 3 is delivered; Phase 4 is the next execution boundary.
 
 - Use `.backlog/README.md` as the canonical local Track workflow and `.backlog/PORE.md` for problem statements.
 - New Tracks begin in DRAFT; implementation begins only after the Track is ACTIVE and its Move-to-ACTIVE plan step is checked.

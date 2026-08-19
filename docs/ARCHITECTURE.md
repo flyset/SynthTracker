@@ -7,7 +7,8 @@ does not replace the decision and requirement registers:
 
 ## Current system
 
-TFMX.cpp is currently a transitional legacy CLI with SDL-backed audio. The
+SynthTracker is currently a transitional legacy CLI with SDL-backed audio. TFMX
+names the legacy format, modules, and semantics; it is not the product name. The
 legacy implementation is compiled under the C23 baseline as a single
 SDL-linked executable:
 
@@ -29,6 +30,14 @@ non-reentrant, and not a public API or MCP surface.
 
 Audio remains bound to the SDL 1.2-era API surface used by the engine. SDL 1.1.7
 is historical legacy context, not an asserted current build dependency.
+
+### Phase 4 compatibility policy
+
+Phase 3 is delivered and Phase 4 is next. During Phase 4, preserving current
+TFMX behavior where practical is a temporary development scaffold only. Every
+Phase 4 Track must assess compatibility impact on relevant TFMX modules,
+trackstep, pattern, macro, timing, interpreter, and audio semantics, and retain
+appropriate evidence. This is not a SynthTracker v1 compatibility promise.
 
 ## Current validation boundary
 
