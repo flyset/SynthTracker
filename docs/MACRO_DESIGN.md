@@ -85,12 +85,9 @@ this repository. The provenance and citation policy in
 
 These are open; none are resolved here:
 
-- **Representation: raw versus decoded.** Whether macros remain arrays of
-  32-bit words with the opcode in the high byte, or are decoded into a typed
-  model, is explicitly **not decided** by this document. The open boundary is
-  **Loader/Writer → Module Domain Model → Playback Engine**: ownership and
-  lifetime, validation responsibilities, and raw-versus-decoded representation
-  remain open, with no implied decision in this document.
+- **Target contract:** The exact `File I/O → Model → Playback Engine` contract
+  remains open, and the relationship of a possible Module Domain Model remains
+  open.
 - How the new engine executes macros: interpret the word stream as the legacy
   code does, or transform it into an internal representation first.
 - How the unsupported and stub opcodes are handled in a future editor (SID

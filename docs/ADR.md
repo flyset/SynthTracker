@@ -37,6 +37,7 @@ record to its replacement. Product-management decisions remain in the
 - [ADR-002 — Private SDL-Free Playback Evidence Seam](adr/ADR-002-private-sdl-free-playback-evidence-seam.md) — **Accepted**, 2026-08-16.
 - [ADR-003 — Private Seam Placement](adr/ADR-003-private-seam-placement.md) — **Accepted**, 2026-08-17.
 - [ADR-004 — Tests Mirror Source Architecture](adr/ADR-004-component-first-test-organization.md) — **Accepted**, 2026-08-16.
+- [ADR-005 — Target DAW Component Foundation](adr/ADR-005-target-daw-component-foundation.md) — **Accepted**, 2026-08-19.
 
 ## Related documentation
 

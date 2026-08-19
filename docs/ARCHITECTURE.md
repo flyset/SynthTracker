@@ -37,20 +37,89 @@ and only platform scope. Other-platform support requires an explicit product
 decision recorded in project memory. The current SDL-era audio boundary remains
 the implemented output path.
 
-## Target-level decomposition
+## Approved target architecture (not implemented)
 
-The following remains future/proposed and unresolved at the implementation
-boundary: Editor, Loader/Writer, Module Domain Model, distinct Sequencing and
-Synthesis responsibilities, Playback Engine, Audio Mixer, Audio Output Port,
-and the intended macOS CoreAudio Adapter. No target seam or GUI/editing
-functionality is claimed to be implemented here.
+The following is an approved target foundation only. None of these components,
+flows, or boundaries is implemented, and this section does not define APIs,
+concrete data types, extraction mechanics, or implementation contracts.
 
-The future playback core must remain UI-agnostic and future component
-boundaries must be explicit and independently testable. The exact loader →
-domain-model → playback contract, ownership, lifetime, representation, GUI
-design, and CoreAudio integration remain open. TFMX will never support
-simultaneous independent playback contexts; reentrancy or concurrency for that
-purpose is not a target requirement.
+- `Main` owns one `Application` and performs only process start, run, stop, and
+  process-status handling.
+- `Application` owns and coordinates top-level lifecycles, configuration, and
+  UI-request dispatch. It does not perform domain work or carry real-time
+  musical routes.
+- `UI` observes and reads `Model`; mutations flow `UI` → `Application` →
+  `Editor` → `Model`.
+- `Editor` owns edit commands and undo/redo.
+- `Model` owns authoritative DAW project data and persistent in-memory `File
+  Information` metadata/reference (at least path and filename). This metadata/
+  reference is not serialized persistent project-format data, and `Model` has
+  no filesystem authority.
+- `Filesystem` performs bounded directory browse/list operations and file
+  deletion only, and produces `File Information`; it never reads or writes
+  file content.
+- `File I/O` uses `Model`-provided `File Information` to directly read/write
+  content and translate `Model` data for bounded format import/load, save/export,
+  and rendered-audio export.
+- `Input` is musical performance input only.
+- `Tracker` reads song data from `Model`, produces timed musical events, and
+  routes recording through `Editor`.
+- `Synthesizer` reads `Model` configurations defining active engine instances;
+  it renders multiple independent instances simultaneously, with one stream
+  per instance. Tracker/Input events can target instances. Instances are
+  neither threads nor legacy `Channel`s; scheduling is deferred.
+- `Mixer` receives streams and `Model` mix data and produces frames.
+- `Audio Output` is a device-independent port. CoreAudio and future adapters
+  are implementations of that boundary.
+- `Playback Engine` is the emergent `Tracker` + `Synthesizer` + `Mixer`
+  subsystem, not another component.
+
+### Principal permitted relationships (target only)
+
+The following table names principal permitted relationships. It is not an
+exhaustive dependency matrix; detailed contracts and additional relationships
+remain deferred to later Tracks.
+
+| From | To | Permitted responsibility |
+| --- | --- | --- |
+| `Main` | `Application` | Process lifecycle: start, run, stop, and status. |
+| `UI` | `Model` | Read and observe project data. |
+| `UI` | `Application` | Route UI commands and mutations. |
+| `Application` | `Editor` | Coordinate edit requests. |
+| `Application` | `Model` | Store and retrieve `File Information`; coordinate top-level lifecycle and configuration. |
+| `Application` | `Filesystem` | Request bounded browse, list, and file-delete operations. |
+| `Filesystem` | `Application` | Return `File Information`; it has no `Model` dependency. |
+| `Application` | `File I/O` | Invoke bounded content load, save, and export operations. |
+| `File I/O` | `Model` | Translate loaded or saved content to or from `Model`, using `Model`-provided `File Information`; it has no `Filesystem` dependency. |
+| `Application` | `Tracker`, `Synthesizer`, `Mixer` | Configure real-time routes; it does not carry musical events. |
+| `Editor` | `Model` | Apply edits. |
+| `Input` | `Synthesizer` | Send audition events. |
+| `Input` | `Tracker` | Send capture input. |
+| `Tracker` | `Model` | Read song data. |
+| `Tracker` | `Editor` | Send recorded edits. |
+| `Tracker` | `Synthesizer` | Send timed musical events. |
+| `Synthesizer` | `Model` | Read active-instance configuration. |
+| `Synthesizer` | `Mixer` | Send per-instance streams. |
+| `Mixer` | `Model` | Read mix data. |
+| `Mixer` | `Audio Output` | Send audible frames. |
+| `Mixer` | `File I/O` | Send export frames. |
+
+### Principal target flows (not implemented)
+
+- Browse/list/file-delete: `UI` → `Application` → `Filesystem`.
+- Load metadata: `UI` → `Application` → `Filesystem` → `Application` → `Model`
+  for `File Information`; `Application` then retrieves it from `Model` and
+  invokes `File I/O`, which loads content into `Model`.
+- Edit: `UI` → `Application` → `Editor` → `Model`.
+- Audition: `Input` → `Synthesizer`.
+- Record: `Input` → `Tracker` → `Editor` → `Model`.
+- Playback/export: `Model` → `Tracker` → targeted `Synthesizer` instance →
+  streams → `Mixer` → frames → `Audio Output` or `File I/O`.
+
+Multiple `Synthesizer` instances remain inside one playback context and never
+create independent playback contexts. Lifetime/allocation mechanics,
+raw/decoded representation, validation, APIs, threading/scheduling, exact file
+contracts, and extraction are explicitly deferred.
 
 ## Navigation
 

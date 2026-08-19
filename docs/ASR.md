@@ -46,7 +46,7 @@ direction, scope, priorities, and roadmaps are held in project memory.
 - **Status:** Target; the current private seam is not a completed public core.
 - **Verification:** Component-boundary review and playback tests when the
   reusable core is implemented.
-- **Related ADRs:** None yet.
+- **Related ADRs:** [ADR-005](adr/ADR-005-target-daw-component-foundation.md).
 
 ### ASR-004 — Explicit, independently testable component boundaries
 
@@ -55,7 +55,7 @@ direction, scope, priorities, and roadmaps are held in project memory.
 - **Status:** Target; the current legacy implementation remains largely
   co-located and global.
 - **Verification:** Source/build/test layout review and component tests.
-- **Related ADRs:** [ADR-003](adr/ADR-003-private-seam-placement.md), [ADR-004](adr/ADR-004-component-first-test-organization.md), [ADR-002](adr/ADR-002-private-sdl-free-playback-evidence-seam.md) (private test-boundary evidence only; does not fulfill the target requirement).
+- **Related ADRs:** [ADR-003](adr/ADR-003-private-seam-placement.md), [ADR-004](adr/ADR-004-component-first-test-organization.md), [ADR-002](adr/ADR-002-private-sdl-free-playback-evidence-seam.md) (private test-boundary evidence only; does not fulfill the target requirement), [ADR-005](adr/ADR-005-target-daw-component-foundation.md).
 
 ### ASR-006 — Isolated future audio output
 
@@ -64,11 +64,21 @@ direction, scope, priorities, and roadmaps are held in project memory.
 - **Status:** Target; the output port and platform-specific adapters are not
   implemented.
 - **Verification:** Boundary/API review and adapter tests when implemented.
-- **Related ADRs:** None yet.
+- **Related ADRs:** [ADR-005](adr/ADR-005-target-daw-component-foundation.md).
 
 ### ASR-007 — Explicit filesystem and shell boundaries
 
-- **Requirement:** TFMX components must not expose general shell-execution or unrestricted filesystem-access interfaces. Filesystem behavior is permitted only through explicit, bounded Loader or Writer component contracts.
-- **Status:** Current
-- **Verification:** Architecture/API review confirms no general process-launching interface and confines filesystem behavior to the relevant component boundary.
-- **Related ADRs:** None yet.
+- **Requirement:** TFMX components must not expose general shell-execution or
+  unrestricted filesystem-access interfaces. In the target allocation,
+  `Filesystem` is limited to bounded directory browse/list operations and file
+  deletion only; it produces `File Information` and does not read or write
+  content. `File I/O` directly reads
+  and writes content only through `File Information` provided by `Model` for
+  its bounded format duties. `Model` may retain `File Information` but has no
+  filesystem authority.
+- **Status:** Target; the no-shell and no-unrestricted-filesystem guardrail is
+  current, while this target allocation is not implemented.
+- **Verification:** Current review confirms no general process-launching or
+  unrestricted filesystem interface. Target verification is a boundary/API
+  review confirming the stated least-authority split when implemented.
+- **Related ADRs:** [ADR-005](adr/ADR-005-target-daw-component-foundation.md).

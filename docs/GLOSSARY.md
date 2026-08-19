@@ -1,9 +1,9 @@
 # Glossary
 
-Canonical product and protocol terminology. Definitions are code-verified
-against the legacy implementation in this repository; the evidence-cited
-reference is `TFMXLegacy/` (start at `TFMXLegacy/README.md`). Design questions
-are marked **open** and are not defined here.
+Canonical product and protocol terminology. Legacy definitions below are
+code-verified against the implementation; the evidence-cited reference is
+`TFMXLegacy/` (start at `TFMXLegacy/README.md`). Target-only terms are
+decision-defined, explicitly marked, and are not claims about implementation.
 
 - **Macro (soundmacro)** — the instrument-level event stream in a TFMX
   module. A channel runs one macro per note, selected by the note event's
@@ -53,3 +53,50 @@ are marked **open** and are not defined here.
   share a control vocabulary: Sequencing schedules musical structure, while
   Synthesis interprets voice and sound behavior. Neither target responsibility
   is implemented as a separate boundary.
+
+## Target-only terminology (not implemented)
+
+- **Main** — target process entrypoint owning one `Application` and only
+  process start, run, stop, and status.
+- **Application** — target coordinator for top-level lifecycles, configuration,
+  and UI-request dispatch; it performs no domain work and carries no real-time
+  musical routes.
+- **UI** — target presentation boundary that reads/observes `Model` and sends
+  mutations through `Application`.
+- **Editor** — target owner of edit commands and undo/redo; it applies edits to
+  `Model`.
+- **Model** — target authoritative DAW project data, including persistent
+  in-memory `File Information` metadata/reference; this metadata/reference is
+  not serialized persistent project-format data. It has no filesystem
+  authority and is distinct from a possible future `Module Domain Model`.
+- **Filesystem** — target bounded directory browse/list and file-deletion-only
+  boundary that produces `File Information` and never reads or writes file
+  content.
+- **File I/O** — target bounded content reader/writer and translator between
+  file content and `Model` data, using `Model`-provided `File Information` for
+  import/load, save/export, and rendered-audio export. This replaces the
+  provisional target labels `Loader` and `Writer`.
+- **Input** — target musical performance input only; ordinary UI input remains
+  with `UI`.
+- **Tracker** — target TFMX song sequencing/recording component that reads
+  `Model`, produces timed musical events, and routes recording through
+  `Editor`; it is not a general-purpose tracker product.
+- **Synthesizer** — target component that reads configured active engine
+  instances from `Model`, renders multiple independent instances, and produces
+  one stream per instance. Instances are neither threads nor legacy `Channel`s.
+  This is not the rejected product category named “synthesizer” in the Vision.
+- **Mixer** — target component that receives synthesizer streams, reads `Model`
+  mix data, and produces frames.
+- **Audio Output** — target device-independent output port. A CoreAudio adapter
+  or future platform adapter is an implementation of this port, not the port
+  itself.
+- **File Information** — target metadata/reference produced by `Filesystem` and
+  retained persistently in memory by `Model`, including at least path and
+  filename; it is not serialized persistent project-format data or file
+  content, and is used by `File I/O`.
+- **Synthesizer engine instance** — target independent renderable instance
+  configured by `Model` and targetable by `Tracker`/`Input`; multiple instances
+  render within one playback context. It is neither a `Channel` nor a thread.
+- **Playback Engine** — target emergent subsystem consisting of `Tracker`,
+  `Synthesizer`, and `Mixer`; it is not another component or an independent
+  playback context.
