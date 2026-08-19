@@ -99,9 +99,27 @@ Always try to use subagents rather than doing the work directly.
 - Implementation follows TDD by default: write a failing focused test, make it pass with the smallest implementation, then refactor and validate.
 - Every behavior change requires automated test coverage; direct TFMX checks complement automated tests and do not replace them.
 
-## TFMX Testing
+## Testing
 
-TBD
+- Tests co-evolve with progressively extracted production components and mirror
+  component ownership; do not organize production tests by source-text-placement
+  technique.
+- Component tests verify observable component contracts. Application-level tests
+  verify observable workflows and composition. Build/link/executable integration
+  checks verify `Main` and executable composition. Compatibility fixtures and
+  direct checks are bounded supplemental evidence; they do not replace
+  automated coverage.
+- TDD requires a failing automated test for intended observable behavior before
+  behavior or component work. Structural or layout inspection may support review
+  but must not substitute for behavioral evidence.
+- Keep tests and fixtures named and located by component ownership as the test
+  tree evolves with extraction. `src/playback/` is private temporary
+  compatibility evidence, not a declaration of target product architecture.
+- Keep `main.c` minimal: cover it through compile, link, and executable
+  integration behavior, not source-text existence or placement tests. Put
+  application behavior in application-level tests when that boundary exists.
+- Read [`docs/TESTING.md`](docs/TESTING.md) for the canonical detailed strategy
+  and the nearest scoped [`tests/AGENTS.md`](tests/AGENTS.md) for test-tree rules.
 
 ## Project Documentation
 

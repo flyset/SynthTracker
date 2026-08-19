@@ -35,8 +35,20 @@
 
 ## Verification and Documentation
 
-- Implementation follows TDD: write a failing focused test, implement the smallest change that passes it, then refactor and run the relevant validation.
-- Every behavior change requires automated test coverage. Direct checks complement automated tests; they do not replace them.
+- Implementation follows TDD: write a failing focused automated test for the
+  intended observable behavior, implement the smallest change that passes it,
+  then refactor and run the relevant validation. Component tests cover
+  component contracts; application-level tests cover workflows/composition; and
+  build/link/executable checks cover Main and executable composition. Structural
+  or layout inspection is review support only, not behavioral evidence.
+- Every behavior change requires automated test coverage. Compatibility
+  fixtures and direct checks complement automated tests; they do not replace
+  them. Tests and fixtures mirror component ownership as extraction proceeds.
+- Keep `main.c` minimal and cover it through compile/link/integration behavior,
+  not source-text existence or placement tests. Put application behavior in
+  application-level tests.
+- See [`TESTING.md`](TESTING.md) for the canonical testing strategy and
+  [`../tests/AGENTS.md`](../tests/AGENTS.md) for scoped rules.
 - Do not create ad-hoc test scripts unless explicitly requested.
 - When public C APIs or package boundaries, TFMX module or file-format
   semantics or compatibility, playback or audio behavior, persistent DAW

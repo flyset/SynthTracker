@@ -59,7 +59,12 @@ evidence. This policy is not a SynthTracker v1 compatibility requirement.
   tested independently.
 - **Status:** Target; the current legacy implementation remains largely
   co-located and global.
-- **Verification:** Source/build/test layout review and component tests.
+- **Verification:** Source/build/layout review is supporting evidence only.
+  Observable component behavior is covered by component tests, application
+  workflows and composition by application-level tests, and executable
+  composition by build/link/integration checks, as each boundary is
+  implemented. See [`TESTING.md`](TESTING.md); compatibility fixtures and
+  direct checks remain supplemental.
 - **Related ADRs:** [ADR-003](adr/ADR-003-private-seam-placement.md), [ADR-004](adr/ADR-004-component-first-test-organization.md), [ADR-002](adr/ADR-002-private-sdl-free-playback-evidence-seam.md) (private test-boundary evidence only; does not fulfill the target requirement), [ADR-005](adr/ADR-005-target-daw-component-foundation.md).
 
 ### ASR-006 — Isolated future audio output

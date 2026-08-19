@@ -12,12 +12,21 @@ names the legacy format, modules, and semantics; it is not the product name. The
 legacy implementation is compiled under the C23 baseline as a single
 SDL-linked executable:
 
-- `src/tfmx.c` owns `main()`, argument parsing, file loading, and byte-sniffing
-  format detection.
+- `src/main.c` is the minimal process entrypoint: it performs the root-user
+  guard, invokes the application, and propagates its status.
+- `src/application.c` coordinates CLI option parsing, loading calls,
+  debug/export dispatch, and the playback lifecycle.
+- `src/tfmx.c` retains the legacy TFMX format detection, loading, module-data
+  logic, and associated global state.
 - `src/player.c` owns the interpreter, including trackstep → pattern → macro
   sequencing, macro execution, and effects.
 - `src/audio.c` owns mixing, filtering, stereo blending, ring-buffer handling,
   SDL audio callbacks, and pthread synchronization.
+
+This is a source-level structural extraction only. The `main.c`/`application.c`
+seam does not provide the approved target `Model`, `Playback Engine`, `Mixer`,
+or `Audio Output` architecture, and it does not establish encapsulated reusable
+components or a public API.
 
 The runtime state is global and shared across these files. Module data is
 mutated in place on load: network-order values are converted in `editbuf`, and
@@ -46,11 +55,24 @@ and only platform scope. Other-platform support requires an explicit product
 decision recorded in project memory. The current SDL-era audio boundary remains
 the implemented output path.
 
-## Approved target architecture (not implemented)
+### Validation by boundary
 
-The following is an approved target foundation only. None of these components,
-flows, or boundaries is implemented, and this section does not define APIs,
-concrete data types, extraction mechanics, or implementation contracts.
+Validation follows ownership rather than source-text placement: component
+tests exercise observable component contracts, application-level tests exercise
+observable workflows and composition, and build/link/executable integration
+checks cover `Main` and executable composition. Compatibility fixtures and
+direct checks provide bounded supplemental evidence. `main.c` remains minimal
+and is not validated by source-text existence or placement tests. The private
+`src/playback/` subtree is temporary compatibility evidence, not target
+application architecture. See [`TESTING.md`](TESTING.md).
+
+## Approved target architecture (not implemented; structural seam only)
+
+The following remains an approved target foundation only. Its target components,
+flows, and boundaries are not implemented; the current source-level
+`main.c`/`application.c` seam is structural and does not implement the target
+`Main` or `Application` contracts. This section does not define APIs, concrete
+data types, extraction mechanics, or implementation contracts.
 
 - `Main` owns one `Application` and performs only process start, run, stop, and
   process-status handling.

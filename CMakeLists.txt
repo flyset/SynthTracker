@@ -33,6 +33,8 @@ include_directories(include/)
 
 # Add the executable
 add_executable(tfmx 
+    src/main.c
+    src/application.c
     src/audio.c 
     src/player.c 
     src/tfmx.c
@@ -84,6 +86,27 @@ target_link_libraries(test_playback_context PRIVATE cmocka::cmocka)
 add_test(
     NAME test_playback_context
     COMMAND test_playback_context
+)
+
+add_executable(test_application
+    tests/application/test_application.c
+    src/application.c
+    src/tfmx.c
+    src/player.c
+    src/audio.c
+)
+target_include_directories(test_application PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(test_application PRIVATE
+    cmocka::cmocka
+    ${SDL_LIBS}
+)
+
+add_test(
+    NAME test_application
+    COMMAND test_application
 )
 
 # Link against the SDL2 library
