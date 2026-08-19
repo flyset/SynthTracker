@@ -9,7 +9,7 @@ tfmx
 # === IDE and Editor Specific ===
 # Visual Studio Code
 .vscode/
-tfmx.code-workspace
+SynthTracker.code-workspace
 
 # === OpenCode Specific ===
 .opencode/

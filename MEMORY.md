@@ -35,7 +35,7 @@ Before performing the first Mnemosyne operation in each session:
 ### SynthTracker Project
 
 - **Scope:** `project`
-- **Namespace:** `tfmx` (stable internal Mnemosyne namespace ID; do not rename)
+- **Namespace:** `synthtracker` (stable internal Mnemosyne namespace ID; do not rename)
 - **Collection:** `null`
 - **Holds:** general SynthTracker project state, constraints, questions, references,
   and summaries that do not belong in a more specific mapped collection.
@@ -48,7 +48,7 @@ Before performing the first Mnemosyne operation in each session:
 #### Overview
 
 - **Scope:** `project`
--- **Namespace:** `tfmx`
+- **Namespace:** `synthtracker`
 - **Collection:** `overview`
 - **Holds:** the living high-level SynthTracker identity, purpose, boundaries, and
   current shape.
@@ -59,7 +59,7 @@ Before performing the first Mnemosyne operation in each session:
 #### Roadmaps
 
 - **Scope:** `project`
--- **Namespace:** `tfmx`
+- **Namespace:** `synthtracker`
 - **Collection:** `roadmaps`
 - **Holds:** user-approved, long-range SynthTracker roadmap sets, including one bounded
   canonical index and bounded section records for major phases, sequencing,
@@ -82,7 +82,7 @@ Before performing the first Mnemosyne operation in each session:
 #### Decisions
 
 - **Scope:** `project`
--- **Namespace:** `tfmx`
+- **Namespace:** `synthtracker`
 - **Collection:** `decisions`
 - **Holds:** durable SynthTracker product-management decisions with their rationale and
   consequences, including product direction, scope, priorities, and roadmaps.
@@ -94,7 +94,7 @@ Before performing the first Mnemosyne operation in each session:
 #### Critiques
 
 - **Scope:** `project`
--- **Namespace:** `tfmx`
+- **Namespace:** `synthtracker`
 - **Collection:** `critiques`
 - **Holds:** unresolved critiques and questions about SynthTracker architecture,
   semantics, or product direction.
@@ -104,7 +104,7 @@ Before performing the first Mnemosyne operation in each session:
 #### Reviews
 
 - **Scope:** `project`
--- **Namespace:** `tfmx`
+- **Namespace:** `synthtracker`
 - **Collection:** `reviews`
 - **Holds:** the living holistic assessment of SynthTracker strengths, weaknesses,
   maturity, and priorities.
@@ -115,7 +115,7 @@ Before performing the first Mnemosyne operation in each session:
 #### Ideas
 
 - **Scope:** `project`
--- **Namespace:** `tfmx`
+- **Namespace:** `synthtracker`
 - **Collection:** `ideas`
 - **Holds:** proposed host capabilities or improvements, developed exploratory
   reasoning, deferred design possibilities, and their eventual disposition.
@@ -127,7 +127,7 @@ Before performing the first Mnemosyne operation in each session:
 #### Issues
 
 - **Scope:** `project`
--- **Namespace:** `tfmx`
+- **Namespace:** `synthtracker`
 - **Collection:** `issues`
 - **Holds:** concrete observed SynthTracker defects or operational problems and their
   resolution status.
@@ -137,7 +137,7 @@ Before performing the first Mnemosyne operation in each session:
 #### Checkpoints
 
 - **Scope:** `project`
--- **Namespace:** `tfmx`
+- **Namespace:** `synthtracker`
 - **Collection:** `checkpoints`
 - **Holds:** temporary, user-requested snapshots of unfinished project or Track
   state, including the current position, blockers, and next action.
@@ -153,7 +153,7 @@ Before performing the first Mnemosyne operation in each session:
 #### Changelog
 
 - **Scope:** `project`
--- **Namespace:** `tfmx`
+- **Namespace:** `synthtracker`
 - **Collection:** `changelog`
 - **Holds:** concise SynthTracker event records for meaningful completed Tracks or
   releases, including the commit, delivered outcome, validation evidence, and
