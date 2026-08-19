@@ -9,7 +9,7 @@ int main(int argc, char **argv)
 
     if ((0 == getuid()) || (0 == geteuid()))
     {
-        printf("Do not run tfmx-play as 'root'!\n");
+        printf("Do not run SynthTracker as 'root'!\n");
         return(-123);
     }
 

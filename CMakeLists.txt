@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(tfmxplay VERSION 1.1.7)
+project(SynthTracker VERSION 1.1.7)
 
 include(CTest)
 enable_testing()
@@ -29,14 +29,22 @@ if(IS_BIG_ENDIAN)
 endif()
 
 # Add the executable
-add_executable(tfmx 
+add_executable(SynthTracker
     src/main.c
     src/application.c
     src/audio.c 
     src/player.c 
     src/tfmx.c
 )
-target_include_directories(tfmx PRIVATE
+add_test(
+    NAME test_synthtracker_cli_identity
+    COMMAND $<TARGET_FILE:SynthTracker> -z
+)
+set_tests_properties(test_synthtracker_cli_identity PROPERTIES
+    PASS_REGULAR_EXPRESSION "SynthTracker v1.1.7/SDL|Do not run SynthTracker as 'root'!"
+    FAIL_REGULAR_EXPRESSION "tfmxplay|tfmx-play"
+)
+target_include_directories(SynthTracker PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
@@ -108,4 +116,4 @@ add_test(
 )
 
 # Link against the SDL2 library
-target_link_libraries(tfmx ${SDL_LIBS})
+target_link_libraries(SynthTracker ${SDL_LIBS})

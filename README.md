@@ -70,7 +70,7 @@ maintainability, and user experience.
 
 4. Run the executable:
    ```bash
-   ./tfmx
+   ./SynthTracker
    ```
 
 > **Note**: This project is **legacy software**. The current Phase 1 boundary targets the SDL 1.2-era API surface used by the engine; SDL 1.1.7 describes the historical legacy context only.

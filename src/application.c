@@ -32,7 +32,7 @@ extern int LoopOff(struct Audio *audio);
 static void usage(char *x)
 {
     fprintf(stderr,
-        "tfmxplay v1.1.7/SDL by Jon Pickard <marxmarv@antigates.com>,\n"
+        "SynthTracker v1.1.7/SDL by Jon Pickard <marxmarv@antigates.com>,\n"
         "Neochrome <neko@netcologne.de> and others.\n"
         "Copyright 1996-2004, see accompanying README for details.\n\n"
         "Usage: %s [options] mdat-file [smpl-file]\n"

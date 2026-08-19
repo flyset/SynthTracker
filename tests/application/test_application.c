@@ -37,6 +37,8 @@ static void test_application_requires_program_arguments(void **state)
 
     assert_int_equal(status, 2);
     assert_non_null(strstr(output, "Usage:"));
+    assert_non_null(strstr(output, "SynthTracker v1.1.7/SDL"));
+    assert_null(strstr(output, "tfmxplay"));
 }
 
 static void test_application_rejects_invalid_option(void **state)
