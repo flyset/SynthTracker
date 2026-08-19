@@ -65,7 +65,7 @@ in `docs/TFMXLegacy/PROVENANCE.md`.
 - **Sequencing.** `tfmxIrqIn` (`src/player.c:1065`) calls `DoAllMacros()`
   before `DoTracks()`, so macro and effect stepping precedes pattern and
   trackstep processing each tick.
-- **State.** All of this lives in `struct Channel` (`include/player.h`): the
+- **State.** All of this lives in `struct Channel` (`src/player.h`): the
   macro pointer/step/number, flow flags, sample addressing, and effect state.
 - **Known discrepancy.** The opcode count is recorded three ways (42-name
   debug table / 44 `case` labels / 47 in historical repository documentation);

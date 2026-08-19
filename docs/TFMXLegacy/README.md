@@ -18,8 +18,8 @@ base:
 - `src/player.c` — the interpreter: `RunMacro`, `DoTrack`, `DoEffects`,
   `NotePort`, `tfmxIrqIn`.
 - `src/audio.c` — mixing, filter, stereo blend, ring buffer, SDL audio path.
-- `include/tfmx.h`, `include/tfmxsong.h`, `include/player.h`,
-  `include/audio.h` — data structures and type definitions.
+- `src/tfmx.h`, `src/tfmxsong.h`, `src/player.h`,
+  `src/audio.h` — data structures and type definitions.
 - `README_LEGACY` — historical notes from the original player authors.
 
 Every factual statement in these documents is traceable to one of those
@@ -44,7 +44,7 @@ conflated:
    code itself never names him. [external]
 2. **The legacy player** (`tfmx-play`) — an independent GPL implementation
    by Jonathan H. Pickard and David Banz (© 1996/2000), later maintained by
-   Neochrome and others (`README_LEGACY`). The code in `src/` and `include/`
+   Neochrome and others (`README_LEGACY`). The code in `src/`
    descends from it.
 3. **This repository's implementation** — a further independent port/refactor
    of that player under GPLv3 (`LICENSE`).

@@ -5,7 +5,7 @@ Patterns are the per-channel event streams that the sequencer steps through
 pattern word encoding and the pattern command set as implemented in
 `DoTrack` (`src/player.c:812`). Evidence: `src/player.c` (`DoTrack`,
 `GetTrackStep`, `NotePort`), `src/tfmx.c` (`pattcmds[]`,
-`dump_pattern`), `include/player.h` (`struct Pattern`,
+`dump_pattern`), `src/player.h` (`struct Pattern`,
 `struct PatternBlock`).
 
 ## Word encoding
@@ -81,7 +81,7 @@ waits are counted in ticks.
 ## Track-to-pattern binding
 
 Eight pattern slots exist, one per track: `patternBlockData.p[0..7]`
-(`include/player.h` `struct PatternBlock`). The trackstep table binds
+(`src/player.h` `struct PatternBlock`). The trackstep table binds
 tracks to patterns and transposes (`GetTrackStep`, `src/player.c:796`–`809`):
 each 16-byte trackstep holds 8 `uint16` words, one per track; the high byte
 is the pattern number (`PNum`), the low byte the transpose (`PXpose`). A

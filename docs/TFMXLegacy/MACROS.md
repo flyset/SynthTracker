@@ -5,7 +5,7 @@ addresses and lengths, volume, pitch effects, waits, loops, and sub-macro
 calls. Each channel runs one macro at a time, selected by the note event's
 macro number (`b1` of a pattern note; see `PATTERNS.md`). Evidence:
 `src/player.c` (`RunMacro`, `DoEffects`, `DoMacro`, `NotePort`, `noteevals`),
-`include/player.h` (`struct Channel`).
+`src/player.h` (`struct Channel`).
 
 ## Word encoding
 

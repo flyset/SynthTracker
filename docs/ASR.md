@@ -92,3 +92,20 @@ evidence. This policy is not a SynthTracker v1 compatibility requirement.
   unrestricted filesystem interface. Target verification is a boundary/API
   review confirming the stated least-authority split when implemented.
 - **Related ADRs:** [ADR-005](adr/ADR-005-target-daw-component-foundation.md).
+
+### ASR-008 — Co-located project-owned headers and `include/` retirement
+
+- **Requirement:** All project-owned production and test headers must live in
+  the same owning source or test folder as the owning C source. This requires
+  folder co-location only and does not require a one-to-one basename pair.
+  `include/` must contain no project-owned headers at the completed end state;
+  no new project-owned header may be added there during migration. Third-party,
+  generated, and platform SDK headers are outside this requirement.
+- **Status:** Current; completed.
+- **Verification:** Completed layout review confirms that the four legacy
+  headers (`player.h`, `audio.h`, `tfmx.h`, and `tfmxsong.h`) are under `src/`
+  and that project-owned production and test headers are co-located with their
+  owning source or test folders. Removal verification confirms that `include/`
+  is retired and contains no project-owned headers. Build/include-resolution
+  validation provides supporting evidence.
+- **Related ADRs:** [ADR-006](adr/ADR-006-private-header-colocation-and-include-retirement.md).

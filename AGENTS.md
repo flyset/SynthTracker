@@ -19,6 +19,11 @@ lineage; it does not name the DAW product.
   in C23 or a later ISO C standard. C++ is not a project direction;
   implementation languages for third-party dependencies are evaluated
   separately.
+- All project-owned production and test headers are private and co-located in their
+  owning source or test folder; co-location is folder-based and does not require
+  one-to-one basename pairing. `include/` is retired and no new project-owned
+  headers may be added there. Third-party, generated, and platform SDK headers are
+  excluded.
 
 ## Guardrails
 
@@ -35,7 +40,7 @@ lineage; it does not name the DAW product.
 
 ## Current Scope
 
-- Refactoring the legacy C engine (src/, include/) into a reusable modern C
+- Refactoring the legacy C engine (src/) into a reusable modern C
   playback core under the modern C product boundary. C23 remains the current
   build and validation baseline.
 - During Phase 4, preserve current TFMX behavior where practical only as a

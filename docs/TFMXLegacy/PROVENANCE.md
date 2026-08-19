@@ -26,7 +26,7 @@ All prose is original factual summary or paraphrase of the local code.
 | `src/tfmx.c` | Front end, format sniffing (`tfmxtest`), loader (`load_tfmx`), debug dumps, option handling. |
 | `src/player.c` | Interpreter: `RunMacro`, `DoTrack`, `DoEffects`, `NotePort`, `DoMacro`, `DoTracks`, `GetTrackStep`, `StartSong`, `tfmxIrqIn`. |
 | `src/audio.c` | Mixing, filter, blend, ring buffer, SDL audio path, tick-to-sample conversion. |
-| `include/tfmx.h`, `include/tfmxsong.h`, `include/player.h`, `include/audio.h` | Types and structures referenced throughout. |
+| `src/tfmx.h`, `src/tfmxsong.h`, `src/player.h`, `src/audio.h` | Types and structures referenced throughout. |
 | `README_LEGACY` | Historical notes, credits, and tested-module list of the original player. |
 | `README.md`, `docs/ARCHITECTURE.md`, `docs/VISION.md` | Repository-level context; cross-checked for consistency. |
 

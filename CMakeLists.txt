@@ -28,9 +28,6 @@ if(IS_BIG_ENDIAN)
     add_definitions(-DWORDS_BIGENDIAN=1)
 endif()
 
-# Include directories for SDL2 and other headers
-include_directories(include/)
-
 # Add the executable
 add_executable(tfmx 
     src/main.c
@@ -38,6 +35,9 @@ add_executable(tfmx
     src/audio.c 
     src/player.c 
     src/tfmx.c
+)
+target_include_directories(tfmx PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 # Compile probes for the affected production translation units.
@@ -50,10 +50,10 @@ set_target_properties(tfmx_compile_probe player_compile_probe PROPERTIES
 )
 
 target_include_directories(tfmx_compile_probe PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories(player_compile_probe PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 add_test(
@@ -74,7 +74,6 @@ add_executable(test_playback_context
     src/player.c
 )
 target_include_directories(test_playback_context PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/playback
 )
@@ -96,7 +95,6 @@ add_executable(test_application
     src/audio.c
 )
 target_include_directories(test_application PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_link_libraries(test_application PRIVATE

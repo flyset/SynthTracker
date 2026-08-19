@@ -3,7 +3,7 @@
 This document describes how per-voice state becomes output samples, as
 implemented in `src/audio.c`. Evidence: `src/audio.c` (mixing, filter,
 stereo blend, ring buffer, SDL callback, timing conversion),
-`include/player.h` (`struct Audio`), `src/player.c` (voice update in
+`src/player.h` (`struct Audio`), `src/player.c` (voice update in
 `DoMacro`), `README_LEGACY` (feature history).
 
 ## Output platform
@@ -28,7 +28,7 @@ Thread synchronization uses a pthread mutex/condition pair
 
 ## Voice state and per-tick update
 
-Each of the 8 voices carries a `struct Audio` (`include/player.h:6`):
+Each of the 8 voices carries a `struct Audio` (`src/player.h:6`):
 `pos` (fixed-point position), `delta` (per-sample increment), `slen` /
 `SampleLength` (current / nominal length), `sbeg` / `SampleStart`
 (current / nominal start), `vol`, `mode`, and `loop` (function pointer).

@@ -28,6 +28,21 @@ seam does not provide the approved target `Model`, `Playback Engine`, `Mixer`,
 or `Audio Output` architecture, and it does not establish encapsulated reusable
 components or a public API.
 
+### Header placement
+
+The four legacy headers (`player.h`, `audio.h`, `tfmx.h`, and `tfmxsong.h`) now
+live under `src/`. The extracted private playback headers and `application.h`
+are co-located with their owning source folders. Every project-owned production
+and test header now lives in the same owning source or test folder as its
+owning C source. This is folder co-location, not a one-to-one source/header
+basename rule.
+
+`include/` is retired and contains no project-owned headers. Third-party,
+generated, and platform SDK headers are outside this layout decision. This end
+state does not create a public C API or a library-header model. See
+[ADR-006](adr/ADR-006-private-header-colocation-and-include-retirement.md) and
+[ASR-008](ASR.md#asr-008--co-located-project-owned-headers-and-include-retirement).
+
 The runtime state is global and shared across these files. Module data is
 mutated in place on load: network-order values are converted in `editbuf`, and
 file pointers become array indices. Per-song behavior hacks remain global.

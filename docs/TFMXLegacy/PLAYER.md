@@ -5,7 +5,7 @@ per-tick entry point, the trackstep table, the pattern sequencer, the timing
 model, song start, multimode, per-song hacks, and the SFX lock mechanism.
 Evidence: `src/player.c` (`tfmxIrqIn`, `DoAllMacros`, `DoMacro`, `DoTracks`,
 `DoTrack`, `GetTrackStep`, `StartSong`, `TfmxInit`, `ChannelOff`, `DoFade`),
-`include/player.h` (`struct Channel`, `struct TrackManager`,
+`src/player.h` (`struct Channel`, `struct TrackManager`,
 `struct PatternBlock`, `struct Pattern`).
 
 ## Voices and channels

@@ -28,7 +28,7 @@ decision-defined, explicitly marked, and are not claims about implementation.
   commands; the middle level of the trackstep → pattern → macro hierarchy.
   See `TFMXLegacy/PATTERNS.md`.
 - **Channel** — the per-voice interpreter state (`struct Channel`,
-  `include/player.h`): active macro pointer/step/number, flow flags, sample
+  `src/player.h`): active macro pointer/step/number, flow flags, sample
   addressing, and effect state.
 - **Playback context** — a playback-session object. Its current private
   bridge-backed execution is single-global and non-reentrant. TFMX supports at

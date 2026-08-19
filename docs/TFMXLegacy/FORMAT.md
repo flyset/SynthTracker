@@ -4,7 +4,7 @@ This document describes the on-disk layout of a TFMX module as read by the
 legacy player in this repository. All byte offsets are relative to the start
 of the data file being read (the `mdat` part in the dual-file case). Every
 multibyte value is stored big-endian and converted with `ntohs`/`ntohl`
-(`src/tfmx.c`, `src/player.c`). Evidence: `include/tfmxsong.h`
+(`src/tfmx.c`, `src/player.c`). Evidence: `src/tfmxsong.h`
 (`struct Header`), `src/tfmx.c` (`load_tfmx`, `tfmxtest`).
 
 ## File variants
@@ -24,7 +24,7 @@ and `"TFMX"` (first 4 chars).
 
 ## Header layout (512 bytes)
 
-`struct Header` (`include/tfmxsong.h:6`) is exactly 512 bytes (0x200). The
+`struct Header` (`src/tfmxsong.h:6`) is exactly 512 bytes (0x200). The
 field offsets follow from the struct layout; the loader's byte-sniffing code
 in `tfmxtest()` reads several of these offsets directly
 (`src/tfmx.c:99`–`167`).
