@@ -109,3 +109,14 @@ evidence. This policy is not a SynthTracker v1 compatibility requirement.
   is retired and contains no project-owned headers. Build/include-resolution
   validation provides supporting evidence.
 - **Related ADRs:** [ADR-006](adr/ADR-006-private-header-colocation-and-include-retirement.md).
+
+### ASR-009 — Audio Frame Block Boundary Invariants
+
+- **Requirement:** Zero-frame Audio Frame Blocks are valid. For a nonzero block,
+  payload length must be exactly `frame_count × 4` bytes for the
+  fixed initial format. Missing payload and incorrect payload length must
+  produce distinct failures.
+- **Status:** Target
+- **Verification:** Focused component tests when the Audio Output boundary is
+  implemented.
+- **Related ADRs:** [ADR-007](adr/ADR-007-audio-frame-block-boundary-and-fixed-first-format.md), [ADR-005](adr/ADR-005-target-daw-component-foundation.md).

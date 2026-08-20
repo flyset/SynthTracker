@@ -39,6 +39,7 @@ record to its replacement. Product-management decisions remain in the
 - [ADR-004 — Tests Mirror Source Architecture](adr/ADR-004-component-first-test-organization.md) — **Accepted**, 2026-08-16.
 - [ADR-005 — Target DAW Component Foundation](adr/ADR-005-target-daw-component-foundation.md) — **Accepted**, 2026-08-19.
 - [ADR-006 — Private Header Co-location and Include Retirement](adr/ADR-006-private-header-colocation-and-include-retirement.md) — **Accepted**, 2026-08-19.
+- [ADR-007 — Audio Frame Block Boundary and Fixed First Format](adr/ADR-007-audio-frame-block-boundary-and-fixed-first-format.md) — **Accepted**, 2026-08-20.
 
 ## Related documentation
 

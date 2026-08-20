@@ -94,10 +94,16 @@ decision-defined, explicitly marked, and are not claims about implementation.
   one stream per instance. Instances are neither threads nor legacy `Channel`s.
   This is not the rejected product category named “synthesizer” in the Vision.
 - **Mixer** — target component that receives synthesizer streams, reads `Model`
-  mix data, and produces frames.
-- **Audio Output** — target device-independent output port. A CoreAudio adapter
-  or future platform adapter is an implementation of this port, not the port
-  itself.
+  mix data, and produces `Audio Frame Blocks`.
+- **Audio Output** — target device-independent output port that consumes `Audio
+  Frame Blocks`. A CoreAudio adapter or future platform adapter is an
+  implementation of this port, not the port itself.
+- **Audio Frame Block** — target artifact: a finite, ordered block of
+  rendered audio frames produced by `Mixer` and consumed by `Audio Output` or
+  `File I/O` for rendered-audio export. See [`ARTIFACTS.md`](ARTIFACTS.md),
+  [`ADR-007`](adr/ADR-007-audio-frame-block-boundary-and-fixed-first-format.md),
+  and [`ASR-009`](ASR.md#asr-009--audio-frame-block-boundary-invariants) for
+  the artifact decision and contract invariants.
 - **File Information** — target metadata/reference produced by `Filesystem` and
   retained persistently in memory by `Model`, including at least path and
   filename; it is not serialized persistent project-format data or file

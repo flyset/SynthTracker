@@ -84,6 +84,8 @@ Run `-h` for usage instructions and feature details.
 - [ADR index](docs/ADR.md) — governance for future architectural decisions.
 - [ASR register](docs/ASR.md) — architecturally significant requirements.
 - [Glossary](docs/GLOSSARY.md) — canonical product and protocol terminology.
+- [Artifacts](docs/ARTIFACTS.md) — target component-boundary artifacts and open
+  contracts.
 - [Agent workflow](docs/AGENT_WORKFLOW.md) — contribution gates and verification.
 
 ## License

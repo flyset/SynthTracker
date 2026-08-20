@@ -114,9 +114,10 @@ data types, extraction mechanics, or implementation contracts.
   it renders multiple independent instances simultaneously, with one stream
   per instance. Tracker/Input events can target instances. Instances are
   neither threads nor legacy `Channel`s; scheduling is deferred.
-- `Mixer` receives streams and `Model` mix data and produces frames.
-- `Audio Output` is a device-independent port. CoreAudio and future adapters
-  are implementations of that boundary.
+- `Mixer` receives synthesizer streams and `Model` mix data and produces `Audio
+  Frame Blocks`.
+- `Audio Output` consumes `Audio Frame Blocks` through a device-independent
+  port. CoreAudio and future adapters are implementations of that boundary.
 - `Playback Engine` is the emergent `Tracker` + `Synthesizer` + `Mixer`
   subsystem, not another component.
 
@@ -172,7 +173,9 @@ contracts, and extraction are explicitly deferred.
 - [`ADR.md`](ADR.md) — ADR index and governance.
 - [`ASR.md`](ASR.md) — architecturally significant requirements.
 - [`VISION.md`](VISION.md) — product intent, boundaries, and future direction.
-- [`GLOSSARY.md`](GLOSSARY.md) — canonical terminology.
+- [`GLOSSARY.md`](GLOSSARY.md) — canonical product and protocol terminology.
+- [`ARTIFACTS.md`](ARTIFACTS.md) — target component-boundary artifacts and open
+  contracts.
 - [`MACRO_DESIGN.md`](MACRO_DESIGN.md) — pre-design macro-layer questions.
 - [`TFMXLegacy/README.md`](TFMXLegacy/README.md) — legacy format and player
   reference.
