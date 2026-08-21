@@ -70,6 +70,8 @@ Always try to use subagents rather than doing the work directly.
 
 - Use `@explore` for read-only repository discovery, analysis, and review; it
   must not edit files or run state-changing commands.
+- Use `@review` for read-only code, architecture, and plan review; it must not
+  edit files or run state-changing commands.
 - Use `@general` for distinct, bounded, multi-step work with explicit scope and
   verification requirements.
 - Use `@test` for independent test review and automated verification. It may
