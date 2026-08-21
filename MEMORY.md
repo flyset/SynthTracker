@@ -65,6 +65,11 @@ Before performing the first Mnemosyne operation in each session:
   canonical index and bounded section records for major phases, sequencing,
   dependencies, intended outcomes, delivered baseline, and shared constraints;
   roadmaps guide direction but do not replace detailed Backlog Tracks.
+- **Roadmap structure:** `Phase → Stage → Track → Track plan step/TDD chunk`. A
+  Phase is a major directional boundary; a Stage is a high-level outcome within a
+  Phase and can contain multiple Tracks; a Track is the bounded engineering
+  record; Track plan steps/TDD chunks are execution units, not roadmap stages.
+- **Roadmap storage:** A roadmap set has one canonical index record and one record per Phase. Stages are represented within their owning Phase record unless a user-approved need warrants an additional record. Tracks remain canonical `.backlog` files, and their plan steps/TDD chunks remain within those files.
 - **Read when:** choosing or evaluating the next major project step, planning a
   roadmap-derived Track, determining how a Track fits the longer-term direction,
   and reconciling the roadmap set when that Track completes. List the complete
