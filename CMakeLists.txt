@@ -115,5 +115,19 @@ add_test(
     COMMAND test_application
 )
 
+add_executable(test_audio_output
+    tests/audio_output/test_audio_output.c
+    src/audio_output/audio_output.c
+)
+target_include_directories(test_audio_output PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
+)
+target_link_libraries(test_audio_output PRIVATE cmocka::cmocka)
+
+add_test(
+    NAME test_audio_output
+    COMMAND test_audio_output
+)
+
 # Link against the SDL2 library
 target_link_libraries(SynthTracker ${SDL_LIBS})
