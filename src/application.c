@@ -52,7 +52,7 @@ static void usage(char *x)
 int application_run(int argc, char **argv)
 {
     char *tfxloc=0, *channel=0;
-    int x;
+    int x, saw_w=0;
     char mfn[PATHNAME_LENGTH], sfn[PATHNAME_LENGTH];
 
     over=-1;
@@ -65,7 +65,7 @@ int application_run(int argc, char **argv)
         case 'f': outRate=strtol(optarg,NULL,0); break;
         case 'b': blend=strtol(optarg,NULL,0); break;
         case 'p': songnum=strtol(optarg,NULL,0); break;
-        case 'w': filt=strtol(optarg,NULL,0); break;
+        case 'w': filt=strtol(optarg,NULL,0); saw_w=1; break;
         case 'l': loops=strtol(optarg,NULL,0); break;
         case 'v': over=0; break;
         case 'G': gemx=1; break;
@@ -97,6 +97,10 @@ int application_run(int argc, char **argv)
             } else { tfxloc++; (*tfxloc++)^='t'^'s'; (*tfxloc++)^='f'^'a'; (*tfxloc++)^='x'^'m'; tfxloc-=4; }
         }
     } else { usage(argv[0]); return 2; }
+
+    if (toOutFile==0 &&
+        (outRate!=44100 || (blend!=1 && blend!=2) || force8!=0 || saw_w))
+        return 1;
 
     if ((x=load_tfmx(mfn,sfn))==1) { fprintf(stderr,"%s: load_tfmx failed\n",argv[0]); exit(1); }
     else if (x==2) { fprintf(stderr,"%s: Not an MDAT/TFMX file\n",channel); exit(1); }

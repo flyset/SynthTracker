@@ -20,8 +20,10 @@ SDL-linked executable:
   logic, and associated global state.
 - `src/player.c` owns the interpreter, including trackstep → pattern → macro
   sequencing, macro execution, and effects.
-- `src/audio.c` owns mixing, filtering, stereo blending, ring-buffer handling,
-  SDL audio callbacks, and pthread synchronization.
+- `src/audio.c` owns the legacy renderer (mixing, filtering, stereo blending,
+  ring-buffer handling, SDL audio callbacks, and pthread synchronization) plus
+  the private temporary live-only bridge immediately after `mixem`; the legacy
+  `-o` file-output path remains unchanged.
 
 This is a source-level structural extraction only. The `main.c`/`application.c`
 seam does not provide the approved target `Model`, `Playback Engine`, `Mixer`,
@@ -55,11 +57,43 @@ non-reentrant, and not a public API or MCP surface.
 Audio remains bound to the SDL 1.2-era API surface used by the engine. SDL 1.1.7
 is historical legacy context, not an asserted current build dependency.
 
+### Private audio-output live route (Phase 4)
+
+The compatible temporary live route is a private, device-free, silent path that
+exercises the ADR-008/ASR-009 mixed-value boundary from the legacy renderer:
+
+- `src/audio_output/` is a private signed-32 Audio Frame Block implementation:
+  a block carries a frame count and borrowed interleaved signed-32
+  `{ left, right }` frames (never serialized PCM, never device-native data),
+  submission returns private accepted/rejected results, and the synchronous
+  production null adapter counts accepted blocks and frames only while
+  retaining no pointers or values.
+- The live-only bridge in `src/audio.c` submits one block per `mixem` call,
+  mapping `tbuf[HALFBUFSIZE+i]` to `left` and `tbuf[i]` to `right`, preserving
+  the existing `mixem` order and existing multimode in-mix clipping with no
+  added clipping, conversion, blending, filtering, or PCM packing, and clears
+  both source lanes only after an accepted submission.
+- The strict temporary live profile accepts exactly 44.1 kHz with `-b 1` or
+  `-b 2` (both submit raw, unblended lanes) and rejects every other `-b`, `-8`,
+  `-w`, and non-44.1 kHz rate before legacy live initialization, playback, or
+  submission.
+- The temporary live lifecycle opens no SDL device: it bypasses device open,
+  pause, callback, ring queue, throttle, final drain, and SDL teardown, retains
+  the required mutex/condition initialization and ordered destruction, and
+  returns finitely through the required legacy cleanup.
+- The legacy `-o` path is exempt from the strict profile and retains the full
+  legacy setup, conversion, ring, and file-output behavior; it is not routed to
+  either temporary live sink.
+- Composition is direct and private: no library, public API, public header, or
+  public target `Mixer` is introduced. `SynthTracker` and `test_application`
+  compose the production null adapter, while other application/audio tests use
+  target-local doubles or the test-only recording sink as applicable.
+
 ### Phase 4 compatibility policy
 
-Phase 3 is delivered and Phase 4 is next. During Phase 4, preserving current
-TFMX behavior where practical is a temporary development scaffold only. Every
-Phase 4 Track must assess compatibility impact on relevant TFMX modules,
+Phase 3 is delivered and Phase 4 is in progress. During Phase 4, preserving
+current TFMX behavior where practical is a temporary development scaffold only.
+Every Phase 4 Track must assess compatibility impact on relevant TFMX modules,
 trackstep, pattern, macro, timing, interpreter, and audio semantics, and retain
 appropriate evidence. This is not a SynthTracker v1 compatibility promise.
 
@@ -67,8 +101,9 @@ appropriate evidence. This is not a SynthTracker v1 compatibility promise.
 
 The current baseline is C23 validated on macOS with Clang. macOS is the current
 and only platform scope. Other-platform support requires an explicit product
-decision recorded in project memory. The current SDL-era audio boundary remains
-the implemented output path.
+decision recorded in project memory. The SDL 1.2-era API surface remains the
+audio dependency and the legacy `-o` output path; compatible temporary live
+playback is the private device-free null submission described above.
 
 ### Validation by boundary
 

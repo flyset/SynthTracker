@@ -1,205 +1,131 @@
 #include <stddef.h>
+#include <stdint.h>
 
 #include <setjmp.h>
 #include <stdarg.h>
-#include <stdint.h>
 #include <cmocka.h>
 
 #include "audio_output.h"
 
-static void zero_frame_validity_depends_only_on_payload_length(void **state)
+static_assert(offsetof(audio_output_null_adapter, accepted_block_count) == 0);
+static_assert(offsetof(audio_output_null_adapter, accepted_frame_count) ==
+              sizeof(size_t));
+static_assert(sizeof(audio_output_null_adapter) == 2 * sizeof(size_t));
+
+static void zero_frame_blocks_are_accepted_with_or_without_frames(void **state)
 {
     (void)state;
     audio_output_null_adapter adapter = {0};
-    const uint8_t payload = 0;
-    const audio_frame_block null_zero_length = {
+    const audio_frame_block null_frames = {
         .frame_count = 0,
-        .payload = NULL,
-        .payload_length = 0,
+        .frames = NULL,
     };
-    const audio_frame_block nonnull_zero_length = {
+    const audio_frame caller_frame = { .left = 1, .right = -1 };
+    const audio_frame_block nonnull_frames = {
         .frame_count = 0,
-        .payload = &payload,
-        .payload_length = 0,
-    };
-    const audio_frame_block null_nonzero_length = {
-        .frame_count = 0,
-        .payload = NULL,
-        .payload_length = 1,
-    };
-    const audio_frame_block nonnull_nonzero_length = {
-        .frame_count = 0,
-        .payload = &payload,
-        .payload_length = 1,
+        .frames = &caller_frame,
     };
 
-    assert_int_equal(audio_output_null_adapter_submit(&adapter, &null_zero_length),
+    assert_int_equal(audio_output_null_adapter_submit(&adapter, &null_frames),
                      AUDIO_OUTPUT_SUBMIT_ACCEPTED);
-    assert_int_equal(adapter.accepted_block_count, 0);
-    assert_int_equal(adapter.accepted_payload_bytes, 0);
-
-    assert_int_equal(audio_output_null_adapter_submit(&adapter, &nonnull_zero_length),
+    assert_int_equal(audio_output_null_adapter_submit(&adapter, &nonnull_frames),
                      AUDIO_OUTPUT_SUBMIT_ACCEPTED);
-    assert_int_equal(adapter.accepted_block_count, 0);
-    assert_int_equal(adapter.accepted_payload_bytes, 0);
-
-    assert_int_equal(audio_output_null_adapter_submit(&adapter, &null_nonzero_length),
-                     AUDIO_OUTPUT_SUBMIT_INCORRECT_PAYLOAD_LENGTH);
-    assert_int_equal(adapter.accepted_block_count, 0);
-    assert_int_equal(adapter.accepted_payload_bytes, 0);
-
-    assert_int_equal(audio_output_null_adapter_submit(&adapter, &nonnull_nonzero_length),
-                     AUDIO_OUTPUT_SUBMIT_INCORRECT_PAYLOAD_LENGTH);
-    assert_int_equal(adapter.accepted_block_count, 0);
-    assert_int_equal(adapter.accepted_payload_bytes, 0);
+    assert_int_equal(adapter.accepted_block_count, 2);
+    assert_int_equal(adapter.accepted_frame_count, 0);
 }
 
-static void nonzero_exact_payload_blocks_are_accepted_and_counted(void **state)
+static void signed_32_interleaved_frames_are_accepted_and_counted(void **state)
 {
     (void)state;
     audio_output_null_adapter adapter = {0};
-    const uint8_t payload[12] = {0};
+    const audio_frame frames[] = {
+        { .left = INT32_MIN, .right = INT32_MAX },
+        { .left = -123456789, .right = 987654321 },
+        { .left = 0, .right = -1 },
+    };
     const audio_frame_block one_frame = {
         .frame_count = 1,
-        .payload = payload,
-        .payload_length = 4,
+        .frames = frames,
     };
-    const audio_frame_block three_frames = {
-        .frame_count = 3,
-        .payload = payload,
-        .payload_length = 12,
+    const audio_frame_block two_frames = {
+        .frame_count = 2,
+        .frames = frames + 1,
     };
 
     assert_int_equal(audio_output_null_adapter_submit(&adapter, &one_frame),
                      AUDIO_OUTPUT_SUBMIT_ACCEPTED);
-    assert_int_equal(audio_output_null_adapter_submit(&adapter, &three_frames),
+    assert_int_equal(audio_output_null_adapter_submit(&adapter, &two_frames),
                      AUDIO_OUTPUT_SUBMIT_ACCEPTED);
     assert_int_equal(adapter.accepted_block_count, 2);
-    assert_int_equal(adapter.accepted_payload_bytes, 16);
+    assert_int_equal(adapter.accepted_frame_count, 3);
 }
 
-static void missing_payload_is_rejected_and_not_counted(void **state)
+static void nonzero_frame_blocks_without_frames_are_rejected_and_not_counted(
+    void **state)
 {
     (void)state;
     audio_output_null_adapter adapter = {0};
     const audio_frame_block block = {
         .frame_count = 1,
-        .payload = NULL,
-        .payload_length = 4,
+        .frames = NULL,
     };
 
     assert_int_equal(audio_output_null_adapter_submit(&adapter, &block),
-                     AUDIO_OUTPUT_SUBMIT_MISSING_PAYLOAD);
+                     AUDIO_OUTPUT_SUBMIT_REJECTED);
     assert_int_equal(adapter.accepted_block_count, 0);
-    assert_int_equal(adapter.accepted_payload_bytes, 0);
+    assert_int_equal(adapter.accepted_frame_count, 0);
 }
 
-static void wrong_payload_length_is_distinct_from_missing_payload(void **state)
+static void accepted_frames_are_not_retained_after_submit(void **state)
 {
     (void)state;
     audio_output_null_adapter adapter = {0};
-    const uint8_t payload[3] = {0};
-    const audio_frame_block wrong_length = {
-        .frame_count = 1,
-        .payload = payload,
-        .payload_length = 3,
+    audio_frame first_frames[] = {
+        { .left = 100, .right = -200 },
+        { .left = 300, .right = -400 },
     };
-    const audio_frame_block missing_payload = {
-        .frame_count = 1,
-        .payload = NULL,
-        .payload_length = 4,
+    const audio_frame second_frames[] = {
+        { .left = INT32_MIN, .right = INT32_MAX },
     };
-
-    const audio_output_submit_result wrong_length_result =
-        audio_output_null_adapter_submit(&adapter, &wrong_length);
-    const audio_output_submit_result missing_payload_result =
-        audio_output_null_adapter_submit(&adapter, &missing_payload);
-
-    assert_int_equal(wrong_length_result,
-                     AUDIO_OUTPUT_SUBMIT_INCORRECT_PAYLOAD_LENGTH);
-    assert_int_equal(missing_payload_result,
-                     AUDIO_OUTPUT_SUBMIT_MISSING_PAYLOAD);
-    assert_int_not_equal(wrong_length_result, missing_payload_result);
-    assert_int_equal(adapter.accepted_block_count, 0);
-    assert_int_equal(adapter.accepted_payload_bytes, 0);
-}
-
-static void accepted_payloads_are_discarded_without_retention(void **state)
-{
-    (void)state;
-    audio_output_null_adapter adapter = {0};
-    uint8_t first_payload[4] = {1, 2, 3, 4};
-    uint8_t second_payload[8] = {5, 6, 7, 8, 9, 10, 11, 12};
     const audio_frame_block first_block = {
-        .frame_count = 1,
-        .payload = first_payload,
-        .payload_length = sizeof(first_payload),
+        .frame_count = 2,
+        .frames = first_frames,
     };
     const audio_frame_block second_block = {
-        .frame_count = 2,
-        .payload = second_payload,
-        .payload_length = sizeof(second_payload),
+        .frame_count = 1,
+        .frames = second_frames,
     };
 
     assert_int_equal(audio_output_null_adapter_submit(&adapter, &first_block),
                      AUDIO_OUTPUT_SUBMIT_ACCEPTED);
-    assert_int_equal(adapter.accepted_block_count, 1);
-    assert_int_equal(adapter.accepted_payload_bytes, 4);
 
-    for (size_t index = 0; index < sizeof(first_payload); ++index) {
-        first_payload[index] = 0;
-    }
-    assert_int_equal(adapter.accepted_block_count, 1);
-    assert_int_equal(adapter.accepted_payload_bytes, 4);
+    first_frames[0] = (audio_frame){ .left = INT32_MAX, .right = INT32_MIN };
+    first_frames[1] = (audio_frame){ .left = 0, .right = 0 };
 
     assert_int_equal(audio_output_null_adapter_submit(&adapter, &second_block),
                      AUDIO_OUTPUT_SUBMIT_ACCEPTED);
-    assert_int_equal(adapter.accepted_block_count, 2);
-    assert_int_equal(adapter.accepted_payload_bytes, 12);
 
-    for (size_t index = 0; index < sizeof(second_payload); ++index) {
-        second_payload[index] = 0;
-    }
-    assert_int_equal(adapter.accepted_block_count, 2);
-    assert_int_equal(adapter.accepted_payload_bytes, 12);
-}
-
-static void overflowing_frame_counts_are_rejected_before_payload_classification(void **state)
-{
-    (void)state;
-    audio_output_null_adapter adapter = {0};
-    const uint8_t payload = 0;
-    const audio_frame_block null_payload = {
-        .frame_count = SIZE_MAX / 4 + 1,
-        .payload = NULL,
-        .payload_length = 0,
-    };
-    const audio_frame_block nonnull_payload = {
-        .frame_count = SIZE_MAX / 4 + 1,
-        .payload = &payload,
-        .payload_length = 0,
+    const audio_output_null_adapter_test_snapshot expected_snapshot = {
+        .accepted_block_count = 2,
+        .accepted_frame_count = 3,
     };
 
-    const audio_output_submit_result null_result =
-        audio_output_null_adapter_submit(&adapter, &null_payload);
-    const audio_output_submit_result nonnull_result =
-        audio_output_null_adapter_submit(&adapter, &nonnull_payload);
+    const audio_output_null_adapter_test_snapshot actual_snapshot =
+        audio_output_null_adapter_test_inspect(&adapter);
 
-    assert_int_equal(null_result, AUDIO_OUTPUT_SUBMIT_INCORRECT_PAYLOAD_LENGTH);
-    assert_int_equal(nonnull_result, AUDIO_OUTPUT_SUBMIT_INCORRECT_PAYLOAD_LENGTH);
-    assert_int_equal(adapter.accepted_block_count, 0);
-    assert_int_equal(adapter.accepted_payload_bytes, 0);
+    assert_int_equal(actual_snapshot.accepted_block_count,
+                     expected_snapshot.accepted_block_count);
+    assert_int_equal(actual_snapshot.accepted_frame_count,
+                     expected_snapshot.accepted_frame_count);
 }
 
 int main(void)
 {
     const struct CMUnitTest tests[] = {
-        cmocka_unit_test(zero_frame_validity_depends_only_on_payload_length),
-        cmocka_unit_test(nonzero_exact_payload_blocks_are_accepted_and_counted),
-        cmocka_unit_test(missing_payload_is_rejected_and_not_counted),
-        cmocka_unit_test(wrong_payload_length_is_distinct_from_missing_payload),
-        cmocka_unit_test(accepted_payloads_are_discarded_without_retention),
-        cmocka_unit_test(overflowing_frame_counts_are_rejected_before_payload_classification),
+        cmocka_unit_test(zero_frame_blocks_are_accepted_with_or_without_frames),
+        cmocka_unit_test(signed_32_interleaved_frames_are_accepted_and_counted),
+        cmocka_unit_test(nonzero_frame_blocks_without_frames_are_rejected_and_not_counted),
+        cmocka_unit_test(accepted_frames_are_not_retained_after_submit),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

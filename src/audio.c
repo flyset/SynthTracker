@@ -9,6 +9,7 @@
 #include "SDL.h"
 #include "player.h"
 #include "audio.h"
+#include "audio_output.h"
 
 void tfmxIrqIn();
 
@@ -27,6 +28,7 @@ heavy CPU load otherwise...) */
 
 #define AUDIO_BUFFER_SIZE_SMALL 4096
 #define AUDIO_BUFFER_SIZE_LARGE 8192
+#define AUDIO_OUTPUT_WORKSPACE_CAPACITY 65536
 
 #ifdef WORDS_BIGENDIAN
 #define AUDIO_FORMAT_8BIT AUDIO_U8
@@ -245,6 +247,9 @@ void (*conv)(S32 *,int)=&conv_s16;
 static int nul=0;
 void (*mix)(struct Audio *, int, S32 *);
 
+static audio_frame audio_output_workspace[AUDIO_OUTPUT_WORKSPACE_CAPACITY];
+static audio_output_null_adapter audio_output_adapter;
+
 void mix_add(struct Audio *audio, int n, S32 *b) {
     if (audio->vol > 0x40) {
         audio->vol = 0x40;
@@ -395,37 +400,13 @@ void mixem(U32 audio_samples, U32 buf_position)
 }
 
 void open_snddev() {
-    SDL_AudioSpec wanted;
-
 	// Configure the audio conversion method
     if (force8) {
         conv = &conv_u8;
     }
 
-	// Set audio specifications
-    wanted.freq = outRate;
-    wanted.format = force8 ? AUDIO_FORMAT_8BIT : AUDIO_FORMAT_16BIT;
-    wanted.channels = stereo ? 2 : 1;
-    wanted.samples = force8 ? AUDIO_BUFFER_SIZE_SMALL : AUDIO_BUFFER_SIZE_LARGE;
-    wanted.callback = fill_audio;
-    wanted.userdata = NULL;
-
-	// Attempt to open the audio device
-    if (SDL_OpenAudio(&wanted, NULL) < 0) {
-        fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
-        _exit(-1);
-    }
-    SDL_PauseAudio(0);
-
-	// Calculate the multiplier and blocksize
-    multiplier = MULTIPLIER_DEFAULT_VALUE * (stereo ? 2 : 1) / (force8 ? 2 : 1);
-    blocksize = HALFBUFSIZE / (multiplier * (stereo ? 2 : 4));
-
-	// Check for block size support
-    if (blocksize > HALFBUFSIZE) {
-        fprintf(stderr, "Block size %d not supported", blocksize);
-        _exit(1);
-    }
+    multiplier = 4;
+    blocksize = 32768;
 }
 
 
@@ -474,11 +455,6 @@ void TfmxTakedown() {
 	}
 
 	free(smplbuf);
-
-	if (toOutFile==0) {
-		SDL_CloseAudio();
-		SDL_Quit();
-	}
 }
 
 int try_to_makeblock() {
@@ -528,12 +504,41 @@ void processAudioData(S32* num_samples_to_process, S32* buf_position, int* buf_p
 
         mixem(*audio_samples, *buf_position);
 
+        if (toOutFile == 0) {
+            if (*audio_samples > AUDIO_OUTPUT_WORKSPACE_CAPACITY) {
+                abort();
+            }
+
+            for (int index = 0; index < *audio_samples; index++) {
+                audio_output_workspace[index] = (audio_frame){
+                    .left = tbuf[HALFBUFSIZE + *buf_position + index],
+                    .right = tbuf[*buf_position + index],
+                };
+            }
+
+            const audio_frame_block block = {
+                .frame_count = (size_t)*audio_samples,
+                .frames = audio_output_workspace,
+            };
+            if (audio_output_null_adapter_submit(&audio_output_adapter, &block) !=
+                AUDIO_OUTPUT_SUBMIT_ACCEPTED) {
+                abort();
+            }
+
+            for (int index = 0; index < *audio_samples; index++) {
+                tbuf[*buf_position + index] = 0;
+                tbuf[HALFBUFSIZE + *buf_position + index] = 0;
+            }
+        }
+
         bytes += *audio_samples;
         *buf_position += *audio_samples;
         *num_samples_to_process -= *audio_samples;
 
         if (((unsigned int)*buf_position) == blocksize || !trackManager.PlayerEnable) {
-            conv(&tbuf[0], *buf_position);
+            if (toOutFile != 0) {
+                conv(&tbuf[0], *buf_position);
+            }
             *buf_position = 0;
             (*buf_proc_counter)++;
         }
@@ -542,14 +547,7 @@ void processAudioData(S32* num_samples_to_process, S32* buf_position, int* buf_p
 
 // Helper function for thread synchronization
 void checkThreadSync(int loops) {
-    if (!loops && toOutFile == 0) {
-
-        pthread_mutex_lock(&lock);
-        if (available_sound_data() >= BUFSIZE / 2) {
-            pthread_cond_wait(&cond, &lock);
-        }
-        pthread_mutex_unlock(&lock);
-    }
+    (void)loops;
 }
 
 // SDL Callback function to fill the audio buffer for playback
@@ -628,11 +626,13 @@ int play_it() {
     // Main audio processing loop
     processAudio();
 
-    // Finalize and write any remaining output
-    finalizeAudioOutput();
+    if (toOutFile != 0) {
+        // Finalize and write any remaining output
+        finalizeAudioOutput();
 
-    // Wait for any remaining audio data to be processed
-    waitForRemainingAudioData();
+        // Wait for any remaining audio data to be processed
+        waitForRemainingAudioData();
+    }
 
     // Clean up synchronization primitives
     cleanupSyncPrimitives();
@@ -677,5 +677,3 @@ void cleanupSyncPrimitives() {
     pthread_mutex_destroy(&lock);
     pthread_cond_destroy(&cond);
 }
-
-

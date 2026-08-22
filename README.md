@@ -22,17 +22,25 @@ maintainability, and user experience.
   boundary.
 - **UI Integration**: Planning and design for a future GUI-first DAW; no GUI or
   editing functionality is implemented yet.
-- **Current SDL audio features**: The SDL 1.2-era audio features include stereo
-  blending and low-pass filtering.
+- **Legacy SDL-era audio features**: The SDL 1.2-era renderer still includes
+  stereo blending and low-pass filtering. Both remain in the legacy `-o` file
+  output path and are intentionally absent from the temporary compatible live
+  route.
 - **Platform scope**: macOS only. Linux and other platform support are outside the current project scope; adding a platform requires a new explicit roadmap decision.
-- **Phase status**: Phase 3 is delivered; Phase 4 is next.
+- **Phase status**: Phase 3 is delivered; Phase 4 is in progress.
+- **Temporary compatible live output (Phase 4)**: The temporary live route is a
+  silent, device-free private null submission immediately after the legacy mix.
+  It accepts exactly 44.1 kHz with `-b 1` or `-b 2` and rejects every other
+  `-b`, `-8`, `-w`, or rate setting before playback. Legacy `-o` remains on the
+  full legacy file path and is exempt from this strict profile.
 
 ## Features
 - Plays **most TFMX modules**, including:
   - MasterBlazer, Apidya, Turrican II/III, JimPower
   - MUDS, R-Type Theme, Z-Out, The Oath, and more
-- **Stereo blending** (adjustable for headphone users)
-- **Low-pass filter** (high, medium, low cutoff frequencies)
+- **Legacy `-o` file output** — retains stereo blending (adjustable for
+  headphone users) and low-pass filtering (high, medium, low cutoff
+  frequencies), which the temporary compatible live route intentionally omits.
 - **macOS support** (the current platform scope)
 - **CoreAudio output** is the intended future macOS Audio Output Adapter; it is
   not implemented yet.

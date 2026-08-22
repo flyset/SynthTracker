@@ -4,27 +4,22 @@ audio_output_submit_result audio_output_null_adapter_submit(
     audio_output_null_adapter *adapter,
     const audio_frame_block *block)
 {
-    if (block->frame_count == 0) {
-        return block->payload_length == 0
-                   ? AUDIO_OUTPUT_SUBMIT_ACCEPTED
-                   : AUDIO_OUTPUT_SUBMIT_INCORRECT_PAYLOAD_LENGTH;
+    if (block->frame_count > 0 && block->frames == NULL) {
+        return AUDIO_OUTPUT_SUBMIT_REJECTED;
     }
 
-    if (block->frame_count > SIZE_MAX / 4) {
-        return AUDIO_OUTPUT_SUBMIT_INCORRECT_PAYLOAD_LENGTH;
-    }
-
-    if (block->frame_count > 0 && block->payload == NULL) {
-        return AUDIO_OUTPUT_SUBMIT_MISSING_PAYLOAD;
-    }
-
-    if (block->frame_count > 0 && block->payload != NULL &&
-        block->payload_length == block->frame_count * 4) {
-        adapter->accepted_block_count += 1;
-        adapter->accepted_payload_bytes += block->payload_length;
-        return AUDIO_OUTPUT_SUBMIT_ACCEPTED;
-    }
-
-    (void)adapter;
-    return AUDIO_OUTPUT_SUBMIT_INCORRECT_PAYLOAD_LENGTH;
+    adapter->accepted_block_count += 1;
+    adapter->accepted_frame_count += block->frame_count;
+    return AUDIO_OUTPUT_SUBMIT_ACCEPTED;
 }
+
+#ifdef SYNTHTRACKER_AUDIO_OUTPUT_TEST_PROBE
+audio_output_null_adapter_test_snapshot audio_output_null_adapter_test_inspect(
+    const audio_output_null_adapter *adapter)
+{
+    return (audio_output_null_adapter_test_snapshot){
+        .accepted_block_count = adapter->accepted_block_count,
+        .accepted_frame_count = adapter->accepted_frame_count,
+    };
+}
+#endif

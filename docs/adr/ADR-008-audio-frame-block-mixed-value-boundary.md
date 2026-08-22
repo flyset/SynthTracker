@@ -72,9 +72,12 @@ remains deferred to later work.
 - Track 012 is historical private fixed-PCM evidence: its private validation
   and null adapter remain valid as evidence of the ADR-007-era design, but do
   not bind the canonical representation.
-- Track 013's PCM route must be re-scoped before implementation. Its planned
-  legacy final-PCM packaging and routing do not match the mixed-value boundary
-  and cannot proceed under the superseded ADR-007 assumption.
+- Track 013 was renamed and re-scoped under this decision as
+  `legacy_mixed_value_audio_output_routing` and implemented the private
+  temporary legacy live route that exercises the mixed-value boundary. Its
+  former planned legacy final-PCM packaging and routing, which did not match
+  the mixed-value boundary, were abandoned and cannot proceed under the
+  superseded ADR-007 assumption.
 - Audio Output and CoreAudio adapters own destination format adaptation;
   File I/O serializes output for rendered-file export as the separate direct
   consumer defined by ADR-005.
@@ -120,5 +123,6 @@ processing point remain deferred as stated above.
 - [`TRACK_012_COMPLETED_audio_output_null_adapter.md`](../../.backlog/COMPLETED/2026/TRACK_012_COMPLETED_audio_output_null_adapter.md)
   — completed Track implementing private fixed-PCM validation; historical
   evidence of the ADR-007-era design.
-- [`TRACK_013_ACTIVE_legacy_pcm_audio_output_routing.md`](../../.backlog/ACTIVE/2026/TRACK_013_ACTIVE_legacy_pcm_audio_output_routing.md)
-  — ACTIVE Track whose PCM route must be re-scoped before implementation.
+- [`TRACK_013_ACTIVE_legacy_mixed_value_audio_output_routing.md`](../../.backlog/ACTIVE/2026/TRACK_013_ACTIVE_legacy_mixed_value_audio_output_routing.md)
+  — ACTIVE Track renamed and re-scoped under this decision; it implements the
+  private temporary legacy live routing that exercises the mixed-value boundary.

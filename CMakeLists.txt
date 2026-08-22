@@ -33,6 +33,7 @@ add_executable(SynthTracker
     src/main.c
     src/application.c
     src/audio.c 
+    src/audio_output/audio_output.c
     src/player.c 
     src/tfmx.c
 )
@@ -46,6 +47,7 @@ set_tests_properties(test_synthtracker_cli_identity PROPERTIES
 )
 target_include_directories(SynthTracker PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
 )
 
 # Compile probes for the affected production translation units.
@@ -101,9 +103,11 @@ add_executable(test_application
     src/tfmx.c
     src/player.c
     src/audio.c
+    src/audio_output/audio_output.c
 )
 target_include_directories(test_application PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
 )
 target_link_libraries(test_application PRIVATE
     cmocka::cmocka
@@ -115,6 +119,41 @@ add_test(
     COMMAND test_application
 )
 
+add_executable(test_application_strict_profile
+    tests/application/test_application_strict_profile.c
+    src/application.c
+)
+target_include_directories(test_application_strict_profile PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(test_application_strict_profile PRIVATE
+    cmocka::cmocka
+)
+
+add_test(
+    NAME test_application_strict_profile
+    COMMAND test_application_strict_profile
+)
+
+add_executable(test_application_audio_lifecycle
+    tests/application/test_application_audio_lifecycle.c
+    src/application.c
+    src/audio.c
+)
+target_include_directories(test_application_audio_lifecycle PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/application
+)
+target_link_libraries(test_application_audio_lifecycle PRIVATE
+    cmocka::cmocka
+)
+
+add_test(
+    NAME test_application_audio_lifecycle
+    COMMAND test_application_audio_lifecycle
+)
+
 add_executable(test_audio_output
     tests/audio_output/test_audio_output.c
     src/audio_output/audio_output.c
@@ -122,11 +161,36 @@ add_executable(test_audio_output
 target_include_directories(test_audio_output PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
 )
+target_compile_definitions(test_audio_output PRIVATE
+    SYNTHTRACKER_AUDIO_OUTPUT_TEST_PROBE
+)
 target_link_libraries(test_audio_output PRIVATE cmocka::cmocka)
 
 add_test(
     NAME test_audio_output
     COMMAND test_audio_output
+)
+
+add_executable(test_audio_routing
+    tests/audio_output/test_audio_routing.c
+    tests/audio_output/recording_sink.c
+    src/audio.c
+    src/player.c
+    src/tfmx.c
+)
+target_include_directories(test_audio_routing PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/audio_output
+)
+target_link_libraries(test_audio_routing PRIVATE
+    cmocka::cmocka
+    ${SDL_LIBS}
+)
+
+add_test(
+    NAME test_audio_routing
+    COMMAND test_audio_routing
 )
 
 # Link against the SDL2 library
