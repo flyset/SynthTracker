@@ -15,7 +15,7 @@ was clarified later and does not match the intended representation.
 Track 012 implemented private validation of that fixed PCM format and a
 synchronous null adapter; that work stands as historical private evidence of
 the ADR-007-era assumption, not as the canonical representation. Track 013
-(ACTIVE) planned to route legacy final PCM under the same assumption; its
+(completed) planned to route legacy final PCM under the same assumption; its
 provisional S2 decision already records the conflict with the clarified
 boundary.
 
@@ -123,6 +123,6 @@ processing point remain deferred as stated above.
 - [`TRACK_012_COMPLETED_audio_output_null_adapter.md`](../../.backlog/COMPLETED/2026/TRACK_012_COMPLETED_audio_output_null_adapter.md)
   — completed Track implementing private fixed-PCM validation; historical
   evidence of the ADR-007-era design.
-- [`TRACK_013_ACTIVE_legacy_mixed_value_audio_output_routing.md`](../../.backlog/ACTIVE/2026/TRACK_013_ACTIVE_legacy_mixed_value_audio_output_routing.md)
-  — ACTIVE Track renamed and re-scoped under this decision; it implements the
+- [`TRACK_013_COMPLETED_legacy_mixed_value_audio_output_routing.md`](../../.backlog/COMPLETED/2026/TRACK_013_COMPLETED_legacy_mixed_value_audio_output_routing.md)
+  — completed Track renamed and re-scoped under this decision; it implements the
   private temporary legacy live routing that exercises the mixed-value boundary.

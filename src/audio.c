@@ -520,8 +520,14 @@ void processAudioData(S32* num_samples_to_process, S32* buf_position, int* buf_p
                 .frame_count = (size_t)*audio_samples,
                 .frames = audio_output_workspace,
             };
-            if (audio_output_null_adapter_submit(&audio_output_adapter, &block) !=
-                AUDIO_OUTPUT_SUBMIT_ACCEPTED) {
+#if defined(SYNTHTRACKER_AUDIO_OUTPUT_USE_DISPATCH)
+            const audio_output_submit_result submit_result =
+                audio_output_dispatch_submit(&audio_output_adapter, &block);
+#else
+            const audio_output_submit_result submit_result =
+                audio_output_null_adapter_submit(&audio_output_adapter, &block);
+#endif
+            if (submit_result != AUDIO_OUTPUT_SUBMIT_ACCEPTED) {
                 abort();
             }
 

@@ -28,6 +28,10 @@ audio_output_submit_result audio_output_null_adapter_submit(
     audio_output_null_adapter *adapter,
     const audio_frame_block *block);
 
+audio_output_submit_result audio_output_dispatch_submit(
+    audio_output_null_adapter *fallback,
+    const audio_frame_block *block);
+
 #ifdef SYNTHTRACKER_AUDIO_OUTPUT_TEST_PROBE
 typedef struct {
     size_t accepted_block_count;

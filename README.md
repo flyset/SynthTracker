@@ -29,10 +29,13 @@ maintainability, and user experience.
 - **Platform scope**: macOS only. Linux and other platform support are outside the current project scope; adding a platform requires a new explicit roadmap decision.
 - **Phase status**: Phase 3 is delivered; Phase 4 is in progress.
 - **Temporary compatible live output (Phase 4)**: The temporary live route is a
-  silent, device-free private null submission immediately after the legacy mix.
-  It accepts exactly 44.1 kHz with `-b 1` or `-b 2` and rejects every other
-  `-b`, `-8`, `-w`, or rate setting before playback. Legacy `-o` remains on the
-  full legacy file path and is exempt from this strict profile.
+  silent, device-free private submission immediately after the legacy mix. On
+  macOS, a private CoreAudio adapter receives each raw signed-32 block through
+  the private audio-output dispatch and converts it to interleaved Float32 with
+  no device involvement; on non-macOS the private null submission remains.
+  The route accepts exactly 44.1 kHz with `-b 1` or `-b 2` and rejects every
+  other `-b`, `-8`, `-w`, or rate setting before playback. Legacy `-o` remains
+  on the full legacy file path and is exempt from this strict profile.
 
 ## Features
 - Plays **most TFMX modules**, including:
@@ -42,8 +45,12 @@ maintainability, and user experience.
   headphone users) and low-pass filtering (high, medium, low cutoff
   frequencies), which the temporary compatible live route intentionally omits.
 - **macOS support** (the current platform scope)
-- **CoreAudio output** is the intended future macOS Audio Output Adapter; it is
-  not implemented yet.
+- **Private CoreAudio adapter (macOS only)** — receives raw signed-32 audio
+  blocks through the private audio-output dispatch and converts them to
+  adapter-private interleaved Float32. It has no device or CoreAudio framework
+  lifecycle, callback, buffering, clock, scheduling, or audible output (those
+  remain Track 015), and it is not a public API or the future Audio Output
+  Adapter.
 
 ## Known Issues
 - Some TFMX files may not play correctly.

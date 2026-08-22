@@ -67,12 +67,25 @@ exercises the ADR-008/ASR-009 mixed-value boundary from the legacy renderer:
   `{ left, right }` frames (never serialized PCM, never device-native data),
   submission returns private accepted/rejected results, and the synchronous
   production null adapter counts accepted blocks and frames only while
-  retaining no pointers or values.
+  retaining no pointers or values. The private dispatch boundary
+  `audio_output_dispatch_submit` routes blocks to the CoreAudio adapter on
+  macOS and to the null-adapter fallback elsewhere.
 - The live-only bridge in `src/audio.c` submits one block per `mixem` call,
   mapping `tbuf[HALFBUFSIZE+i]` to `left` and `tbuf[i]` to `right`, preserving
   the existing `mixem` order and existing multimode in-mix clipping with no
   added clipping, conversion, blending, filtering, or PCM packing, and clears
   both source lanes only after an accepted submission.
+- `src/audio_output/adapters/coreaudio_adapter.c/.h` is a private macOS-only
+  CoreAudio adapter (composed on Apple platforms only). It receives raw
+  signed-32 `{ left, right }` blocks through the dispatch boundary, accepts
+  zero-frame blocks as no-ops, rejects malformed or unrepresentable blocks, and
+  privately converts valid blocks to interleaved Float32
+  (`(float)sample / 2147483648.0f`, INT32_MIN → -1.0f, INT32_MAX → +1.0f) in
+  checked temporary storage, delivering synchronously and retaining no values.
+  It contains no CoreAudio framework include or link, no device open/close,
+  render callback, buffering, device clock, scheduling, or audible output
+  (those remain Track 015), and it is not the target Audio Output Port or an
+  implementation of it.
 - The strict temporary live profile accepts exactly 44.1 kHz with `-b 1` or
   `-b 2` (both submit raw, unblended lanes) and rejects every other `-b`, `-8`,
   `-w`, and non-44.1 kHz rate before legacy live initialization, playback, or
@@ -83,10 +96,14 @@ exercises the ADR-008/ASR-009 mixed-value boundary from the legacy renderer:
   returns finitely through the required legacy cleanup.
 - The legacy `-o` path is exempt from the strict profile and retains the full
   legacy setup, conversion, ring, and file-output behavior; it is not routed to
-  either temporary live sink.
+  the temporary live route.
 - Composition is direct and private: no library, public API, public header, or
-  public target `Mixer` is introduced. `SynthTracker` and `test_application`
-  compose the production null adapter, while other application/audio tests use
+  public target `Mixer` is introduced. On Apple platforms, `SynthTracker`,
+  `test_application`, and `test_audio_output` compose the private CoreAudio
+  adapter directly via `SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES`, and
+  `SynthTracker`/`test_application` define `SYNTHTRACKER_AUDIO_OUTPUT_USE_DISPATCH`
+  so the bridge routes through `audio_output_dispatch_submit` (CoreAudio on
+  macOS, null-adapter fallback elsewhere). Other application/audio tests use
   target-local doubles or the test-only recording sink as applicable.
 
 ### Phase 4 compatibility policy
@@ -103,7 +120,8 @@ The current baseline is C23 validated on macOS with Clang. macOS is the current
 and only platform scope. Other-platform support requires an explicit product
 decision recorded in project memory. The SDL 1.2-era API surface remains the
 audio dependency and the legacy `-o` output path; compatible temporary live
-playback is the private device-free null submission described above.
+playback is the private device-free submission described above (CoreAudio
+adapter on macOS, null-adapter fallback elsewhere).
 
 ### Validation by boundary
 

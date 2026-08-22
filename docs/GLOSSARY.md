@@ -56,7 +56,19 @@ decision-defined, explicitly marked, and are not claims about implementation.
   retained. It is not a SynthTracker v1 compatibility promise.
 - **Audio Output Port** — future/proposed device-independent playback-output
   boundary. **CoreAudio Adapter** is the intended macOS implementation; the
-  integration and API are **open**.
+  integration and API are **open**. The private Phase 4 CoreAudio adapter below
+  is a bounded Stage 3 step toward it, not the port itself.
+- **CoreAudio adapter (private, Phase 4)** — the implemented private
+  macOS-only adapter at `src/audio_output/adapters/coreaudio_adapter.c` (with
+  its private co-located header). It receives raw signed-32 Audio Frame Blocks
+  through the private audio-output dispatch boundary
+  (`audio_output_dispatch_submit`: CoreAudio adapter on macOS, null-adapter
+  fallback elsewhere) and privately converts each block to its adapter-private
+  interleaved Float32 representation (`float32 = int32 / 2147483648.0f`,
+  INT32_MIN → -1.0f, INT32_MAX → +1.0f). It has no device or CoreAudio
+  framework lifecycle, render callback, buffering, device clock, scheduling, or
+  audible output — those remain Track 015 — and it is not the target `Audio
+  Output` port or an implementation of it.
 - **Sequencing / Synthesis** — future/proposed distinct responsibilities that
   share a control vocabulary: Sequencing schedules musical structure, while
   Synthesis interprets voice and sound behavior. Neither target responsibility
@@ -97,7 +109,8 @@ decision-defined, explicitly marked, and are not claims about implementation.
   mix data, and produces `Audio Frame Blocks`.
 - **Audio Output** — target device-independent output port that consumes `Audio
   Frame Blocks`. A CoreAudio adapter or future platform adapter is an
-  implementation of this port, not the port itself.
+  implementation of this port, not the port itself; the private Phase 4
+  CoreAudio adapter is not this port's implementation.
 - **Audio Frame Block** — target artifact: a finite, ordered block of
   rendered audio frames produced by `Mixer` and consumed by `Audio Output` or
   `File I/O` for rendered-audio export. See [`ARTIFACTS.md`](ARTIFACTS.md),

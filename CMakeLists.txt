@@ -17,6 +17,12 @@ execute_process(COMMAND ${SDL_CONFIG} --libs OUTPUT_VARIABLE SDL_LIBS OUTPUT_STR
 # Set compiler flags obtained from sdl-config
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SDL_CFLAGS}")
 
+set(SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES)
+if(APPLE)
+    list(APPEND SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES
+        src/audio_output/adapters/coreaudio_adapter.c
+    )
+endif()
 
 # OpenSSL Configuration (if required)
 # find_package(OpenSSL REQUIRED)
@@ -34,6 +40,7 @@ add_executable(SynthTracker
     src/application.c
     src/audio.c 
     src/audio_output/audio_output.c
+    ${SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES}
     src/player.c 
     src/tfmx.c
 )
@@ -49,6 +56,11 @@ target_include_directories(SynthTracker PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
 )
+if(APPLE)
+    target_compile_definitions(SynthTracker PRIVATE
+        SYNTHTRACKER_AUDIO_OUTPUT_USE_DISPATCH
+    )
+endif()
 
 # Compile probes for the affected production translation units.
 add_library(tfmx_compile_probe OBJECT src/tfmx.c)
@@ -104,6 +116,7 @@ add_executable(test_application
     src/player.c
     src/audio.c
     src/audio_output/audio_output.c
+    ${SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES}
 )
 target_include_directories(test_application PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -113,6 +126,11 @@ target_link_libraries(test_application PRIVATE
     cmocka::cmocka
     ${SDL_LIBS}
 )
+if(APPLE)
+    target_compile_definitions(test_application PRIVATE
+        SYNTHTRACKER_AUDIO_OUTPUT_USE_DISPATCH
+    )
+endif()
 
 add_test(
     NAME test_application
@@ -157,6 +175,7 @@ add_test(
 add_executable(test_audio_output
     tests/audio_output/test_audio_output.c
     src/audio_output/audio_output.c
+    ${SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES}
 )
 target_include_directories(test_audio_output PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
