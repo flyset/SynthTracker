@@ -1,8 +1,10 @@
 # ADR-007: Audio Frame Block Boundary and Fixed First Format
 
-Status: Accepted
+Status: Superseded
 
 Decision date: 2026-08-20.
+
+Superseded by: [ADR-008 — Audio Frame Block Mixed-Value Boundary](ADR-008-audio-frame-block-mixed-value-boundary.md), accepted 2026-08-22. Retained as the historical record of the first fixed format; the mixed-value boundary is now authoritative.
 
 ## Context
 

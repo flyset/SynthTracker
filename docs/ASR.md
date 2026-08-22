@@ -112,11 +112,14 @@ evidence. This policy is not a SynthTracker v1 compatibility requirement.
 
 ### ASR-009 — Audio Frame Block Boundary Invariants
 
-- **Requirement:** Zero-frame Audio Frame Blocks are valid. For a nonzero block,
-  payload length must be exactly `frame_count × 4` bytes for the
-  fixed initial format. Missing payload and incorrect payload length must
-  produce distinct failures.
+- **Requirement:** An Audio Frame Block is an ordered sequence of zero or more
+  frames. Every frame contains a signed-32 left mix value and a signed-32 right
+  mix value emitted by the `Mixer`; the precise internal creation point inside
+  the `Mixer` is not fixed by this requirement. The block contains no
+  device-native or serialized PCM representation. Zero-frame blocks are valid.
 - **Status:** Target
 - **Verification:** Focused component tests when the Audio Output boundary is
-  implemented.
-- **Related ADRs:** [ADR-007](adr/ADR-007-audio-frame-block-boundary-and-fixed-first-format.md), [ADR-005](adr/ADR-005-target-daw-component-foundation.md).
+  implemented. The concrete C API/layout, validation-result and error
+  representation, ownership/lifetime, numerical range, and clipping or overflow
+  behavior are not fixed by this requirement and remain deferred to later work.
+- **Related ADRs:** [ADR-008](adr/ADR-008-audio-frame-block-mixed-value-boundary.md), [ADR-005](adr/ADR-005-target-daw-component-foundation.md).

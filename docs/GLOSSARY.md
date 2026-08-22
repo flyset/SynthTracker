@@ -101,8 +101,8 @@ decision-defined, explicitly marked, and are not claims about implementation.
 - **Audio Frame Block** — target artifact: a finite, ordered block of
   rendered audio frames produced by `Mixer` and consumed by `Audio Output` or
   `File I/O` for rendered-audio export. See [`ARTIFACTS.md`](ARTIFACTS.md),
-  [`ADR-007`](adr/ADR-007-audio-frame-block-boundary-and-fixed-first-format.md),
-  and [`ASR-009`](ASR.md#asr-009--audio-frame-block-boundary-invariants) for
+  [`ADR-008`](adr/ADR-008-audio-frame-block-mixed-value-boundary.md), and
+  [`ASR-009`](ASR.md#asr-009--audio-frame-block-boundary-invariants) for
   the artifact decision and contract invariants.
 - **File Information** — target metadata/reference produced by `Filesystem` and
   retained persistently in memory by `Model`, including at least path and
