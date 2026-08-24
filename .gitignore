@@ -15,3 +15,7 @@ SynthTracker.code-workspace
 .opencode/
 opencode.json
 opencode.json-*
+
+# === OS Specific ===
+# macOS
+.DS_Store
