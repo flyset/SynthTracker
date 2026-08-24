@@ -102,20 +102,28 @@ tfmx_start_status tfmx_playback_context_start(tfmx_playback_context *context,
 
 tfmx_tick_status tfmx_playback_context_tick(tfmx_playback_context *context)
 {
+    return tfmx_playback_context_tick_at_rate(context, 44100);
+}
+
+tfmx_tick_status tfmx_playback_context_tick_at_rate(
+    tfmx_playback_context *context, unsigned int output_rate_hz)
+{
     tfmx_voice_snapshot_set tick_snapshot;
 
-    if (context == NULL) {
+    if (context == NULL || output_rate_hz == 0) {
         return TFMX_TICK_INVALID_ARGUMENT;
     }
     if (!context->started) {
         return TFMX_TICK_NOT_STARTED;
     }
+    tfmx_playback_legacy_bridge_set_output_rate(output_rate_hz);
     if (!tfmx_playback_legacy_bridge_tick(tick_snapshot.voice)) {
         return TFMX_TICK_NOT_STARTED;
     }
     context->snapshot_cache = tick_snapshot;
     context->voice_zero = context->snapshot_cache.voice[0];
-    tfmx_playback_legacy_mixer_begin_tick(&context->mixer, 14318, 44100);
+    tfmx_playback_legacy_mixer_begin_tick(&context->mixer, 14318,
+                                          output_rate_hz);
     context->render_ready = 1;
     return TFMX_TICK_SUCCESS;
 }
@@ -139,6 +147,27 @@ tfmx_render_status tfmx_playback_context_render(tfmx_playback_context *context,
     }
     if (!tfmx_playback_legacy_mixer_render(&context->mixer, output, capacity,
                                            bytes_written)) {
+        return TFMX_RENDER_INVALID_ARGUMENT;
+    }
+    context->render_ready = 0;
+    return TFMX_RENDER_SUCCESS;
+}
+
+tfmx_render_status tfmx_playback_context_render_frames(
+    tfmx_playback_context *context, audio_frame *output, size_t capacity,
+    size_t *frames_written)
+{
+    if (context == NULL || output == NULL || frames_written == NULL) {
+        return TFMX_RENDER_INVALID_ARGUMENT;
+    }
+    if (!context->started || !context->render_ready) {
+        return TFMX_RENDER_NOT_STARTED;
+    }
+    if (context->mixer.pending_frames > capacity) {
+        return TFMX_RENDER_INSUFFICIENT_CAPACITY;
+    }
+    if (!tfmx_playback_legacy_mixer_render_frames(
+            &context->mixer, output, capacity, frames_written)) {
         return TFMX_RENDER_INVALID_ARGUMENT;
     }
     context->render_ready = 0;

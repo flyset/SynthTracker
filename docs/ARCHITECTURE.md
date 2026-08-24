@@ -7,23 +7,33 @@ does not replace the decision and requirement registers:
 
 ## Current system
 
-SynthTracker is currently a transitional legacy CLI with SDL-backed audio. TFMX
-names the legacy format, modules, and semantics; it is not the product name. The
-legacy implementation is compiled under the C23 baseline as a single
-SDL-linked executable:
+SynthTracker is currently a transitional legacy CLI with a private device-driven
+CoreAudio live route on macOS. TFMX names the legacy format, modules, and
+semantics; it is not the product name. The legacy implementation is compiled
+under the C23 baseline as a single executable with no SDL dependency:
 
 - `src/main.c` is the minimal process entrypoint: it performs the root-user
   guard, invokes the application, and propagates its status.
-- `src/application.c` coordinates CLI option parsing, loading calls,
-  debug/export dispatch, and the playback lifecycle.
-- `src/tfmx.c` retains the legacy TFMX format detection, loading, module-data
-  logic, and associated global state.
+- `src/application.c` coordinates CLI option parsing, loading calls, and the
+  private live-output lifecycle: it prepares a private legacy exact-N renderer
+  and a private CoreAudio adapter instance, starts the HAL Output Audio Unit
+  route, and stops it on completion or interrupt. The removed `-b`, `-8`, `-f`,
+  `-o`, `-w`, and `-v` options are rejected as unknown options.
+- `src/playback/tfmx_loader.c` retains the legacy TFMX format detection,
+  loading, module-data logic, and associated global state. Its compatibility
+  evidence is bounded to the four approved self-authored fixture pairs
+  (`step8`, `loop_f1`, `envelope_tempo`, `voices_01`) plus bounded Phase 4
+  evidence; general real-module loader compatibility is deferred after the
+  recorded XOut2 rejection and is not promised.
 - `src/player.c` owns the interpreter, including trackstep → pattern → macro
   sequencing, macro execution, and effects.
-- `src/audio.c` owns the legacy renderer (mixing, filtering, stereo blending,
-  ring-buffer handling, SDL audio callbacks, and pthread synchronization) plus
-  the private temporary live-only bridge immediately after `mixem`; the legacy
-  `-o` file-output path remains unchanged.
+- `src/playback/playback_legacy_renderer.c` is the private exact-N legacy
+  renderer: it retains the current TFMX tick's remaining frames, advances the
+  interpreter exactly once when the retained tick is exhausted, and mixes
+  across ticks to fill each exact device-requested frame count.
+- `src/audio_output/` owns the private Audio Frame Block boundary, the
+  synchronous exact-N device-demand coordinator, the private CoreAudio adapter,
+  and the private CoreAudio system-call facade (see below).
 
 This is a source-level structural extraction only. The `main.c`/`application.c`
 seam does not provide the approved target `Model`, `Playback Engine`, `Mixer`,
@@ -32,9 +42,10 @@ components or a public API.
 
 ### Header placement
 
-The four legacy headers (`player.h`, `audio.h`, `tfmx.h`, and `tfmxsong.h`) now
-live under `src/`. The extracted private playback headers and `application.h`
-are co-located with their owning source folders. Every project-owned production
+The three remaining legacy headers (`player.h`, `tfmx.h`, and `tfmxsong.h`)
+live under `src/`; the legacy `audio.h` was retired with the SDL-era audio
+path. The extracted private playback headers and `application.h` are
+co-located with their owning source folders. Every project-owned production
 and test header now lives in the same owning source or test folder as its
 owning C source. This is folder co-location, not a one-to-one source/header
 basename rule.
@@ -54,57 +65,141 @@ start but remains single-global and non-reentrant. The private `src/playback`
 seam provides a fixed-eight voice snapshot and is SDL-free, single-global,
 non-reentrant, and not a public API or MCP surface.
 
-Audio remains bound to the SDL 1.2-era API surface used by the engine. SDL 1.1.7
-is historical legacy context, not an asserted current build dependency.
+The SDL 1.2-era audio API surface is retired: the legacy SDL live-audio path,
+SDL linkage, SDL test scaffolding, and the `-o` file-output path are removed.
+SDL 1.1.7 is historical legacy context, not an asserted current build
+dependency; SDL remains only a future GUI decision.
 
 ### Private audio-output live route (Phase 4)
 
-The compatible temporary live route is a private, device-free, silent path that
-exercises the ADR-008/ASR-009 mixed-value boundary from the legacy renderer:
+The private live route is now device-driven and audible: the application
+composes a private legacy exact-N renderer with a private CoreAudio adapter
+instance, and the macOS HAL Output Audio Unit render callback drives the
+private render boundary for each device-requested nonzero frame count (a
+zero-frame workspace/HAL request is accepted at the adapter's admission gate
+without invoking the renderer or the exact-N coordinator):
 
 - `src/audio_output/` is a private signed-32 Audio Frame Block implementation:
   a block carries a frame count and borrowed interleaved signed-32
-  `{ left, right }` frames (never serialized PCM, never device-native data),
-  submission returns private accepted/rejected results, and the synchronous
-  production null adapter counts accepted blocks and frames only while
-  retaining no pointers or values. The private dispatch boundary
-  `audio_output_dispatch_submit` routes blocks to the CoreAudio adapter on
-  macOS and to the null-adapter fallback elsewhere.
-- The live-only bridge in `src/audio.c` submits one block per `mixem` call,
-  mapping `tbuf[HALFBUFSIZE+i]` to `left` and `tbuf[i]` to `right`, preserving
-  the existing `mixem` order and existing multimode in-mix clipping with no
-  added clipping, conversion, blending, filtering, or PCM packing, and clears
-  both source lanes only after an accepted submission.
+  `{ left, right }` frames (never serialized PCM, never device-native data).
+  The private synchronous exact-N coordinator
+  `audio_output_coordinate_frame_request` requests exactly N frames from the
+  renderer, rejects a returned block whose frame count differs from N or a
+  nonzero block with NULL frame storage without delivery, padding, or
+  truncation, and otherwise delivers the same borrowed block once.
+- `src/playback/playback_legacy_renderer.c` fulfills exact device requests from
+  the legacy engine: it retains the current TFMX tick's remaining frames,
+  advances the interpreter exactly once when the retained tick is exhausted,
+  and mixes across ticks as needed to fill each exact request, using
+  lifecycle-preallocated storage with no allocation on the callback path. The
+  private legacy producer (`playback_legacy_mixer_render_frames`) first
+  computes blended int32 lanes from the mixed voices using the legacy fixed
+  L/R blend, then explicitly reconstructs each blended lane's low-16
+  historical PCM-domain value and multiplies by 65536 to produce the
+  signed-32 Audio Frame Block values; the generic adapter conversion stays
+  signed-32/2^31.
 - `src/audio_output/adapters/coreaudio_adapter.c/.h` is a private macOS-only
-  CoreAudio adapter (composed on Apple platforms only). It receives raw
-  signed-32 `{ left, right }` blocks through the dispatch boundary, accepts
-  zero-frame blocks as no-ops, rejects malformed or unrepresentable blocks, and
-  privately converts valid blocks to interleaved Float32
-  (`(float)sample / 2147483648.0f`, INT32_MIN → -1.0f, INT32_MAX → +1.0f) in
-  checked temporary storage, delivering synchronously and retaining no values.
-  It contains no CoreAudio framework include or link, no device open/close,
-  render callback, buffering, device clock, scheduling, or audible output
-  (those remain Track 015), and it is not the target Audio Output Port or an
-  implementation of it.
-- The strict temporary live profile accepts exactly 44.1 kHz with `-b 1` or
-  `-b 2` (both submit raw, unblended lanes) and rejects every other `-b`, `-8`,
-  `-w`, and non-44.1 kHz rate before legacy live initialization, playback, or
-  submission.
-- The temporary live lifecycle opens no SDL device: it bypasses device open,
-  pause, callback, ring queue, throttle, final drain, and SDL teardown, retains
-  the required mutex/condition initialization and ordered destruction, and
-  returns finitely through the required legacy cleanup.
-- The legacy `-o` path is exempt from the strict profile and retains the full
-  legacy setup, conversion, ring, and file-output behavior; it is not routed to
-  the temporary live route.
+  CoreAudio adapter (composed on Apple platforms only). Its request entry runs
+  a lock-free OPEN/IN_FLIGHT atomic admission gate, converts signed-32
+  `{ left, right }` blocks to interleaved Float32
+  (`(float)sample / 2147483648.0f`, INT32_MIN → -1.0f, INT32_MAX → +1.0f) into
+  a validated borrowed workspace, and copies the converted samples into the
+  separate native output buffer on the HAL route; the direct delivery mode
+  remains valid only for the fake/test route.
+- `src/audio_output/adapters/coreaudio_facade.c/.h` is the private CoreAudio
+  system-call facade. On Apple platforms the production default facade is a
+  real HAL Output Audio Unit: it opens the default output device, negotiates
+  the device's nominal sample rate (a requested rate of 0 is the private
+  startup-selection sentinel; after device open only an actual nominal 44.1 or
+  48 kHz rate is accepted and reported back as the verified configured rate,
+  explicit 44.1/48 requests retain equality checking, and any other nonzero
+  request is preflight-invalid), requires strict interleaved Float32 stereo
+  at 44.1 or 48 kHz, rejects every other negotiated rate before activation,
+  and drives the render callback with a lock-free admission gate and
+  control-side quiescence; it performs no allocation, locking, file I/O, or UI
+  work on the callback path, and no resampler is introduced. Elsewhere the
+  production default facade returns `UNAVAILABLE`.
+- `src/application.c` performs the cutover: it loads the module, requests the
+  private rate-0 startup-selection sentinel in workspace delivery mode,
+  prepares the renderer in the adapter's control-side preparation callback at
+  the facade-verified 44.1/48 kHz configured rate, starts the route, waits for
+  playback completion or an interrupt, and stops through control-side
+  quiescence.
+- Retired: the legacy SDL live-audio callback, device lifecycle, conversion,
+  ring queue, throttle, drain, SDL teardown, and pthread synchronization; the
+  `-o` file-output path; the strict temporary live profile; and the removed
+  `-b`, `-8`, `-f`, `-o`, `-w`, and `-v` options (each rejected as an unknown
+  option with usage and a non-zero exit status).
 - Composition is direct and private: no library, public API, public header, or
-  public target `Mixer` is introduced. On Apple platforms, `SynthTracker`,
-  `test_application`, and `test_audio_output` compose the private CoreAudio
-  adapter directly via `SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES`, and
-  `SynthTracker`/`test_application` define `SYNTHTRACKER_AUDIO_OUTPUT_USE_DISPATCH`
-  so the bridge routes through `audio_output_dispatch_submit` (CoreAudio on
-  macOS, null-adapter fallback elsewhere). Other application/audio tests use
-  target-local doubles or the test-only recording sink as applicable.
+  public target `Mixer` is introduced. On Apple platforms, `SynthTracker` and
+  the affected test targets compose the private CoreAudio adapter and facade
+  directly; the test-only fake facade drives lifecycle, negotiation, and
+  zero/variable frame requests deterministically without hardware. Other
+  application/audio tests use target-local doubles or the fake facade as
+  applicable.
+
+### Callback-driven render direction (private route implemented)
+
+ADR-009 formalizes the approved live-route rendering direction for the private
+Track 015 CoreAudio route: CoreAudio owns render timing and drives a
+private render boundary that produces every requested Audio Frame Block —
+variable-size and zero-frame requests included — from current/future playback
+state and time-ordered events, never from pre-rendered audio. On the
+implemented workspace/HAL route, each nonzero request is answered exact-N
+through that boundary, while a zero-frame request is accepted at the adapter
+without invoking the renderer or the exact-N coordinator; the broader
+"every request rendered" phrasing remains the approved direction. The
+callback path
+uses lifecycle-preallocated storage and performs no allocation, locking, file
+I/O, UI work, or other unbounded work; adapter-private conversion remains
+separate; and no public Audio Output Port, C API, header, or export is
+introduced. ADR-010 (Accepted, 2026-08-23) refines the private responsibility
+allocation: native audio adapters own their device callbacks, device lifecycle,
+and device-format conversion, while the private `audio_output` component owns
+the synchronous device-demand coordinator — the coordinator function
+(`audio_output_coordinate_frame_request`) is device-independent and, for each
+adapter request of exactly N frames, requests exactly N Audio Frame Block
+frames from the private renderer and immediately routes the result to the
+requesting adapter, containing no software queue or timer. The private
+`audio_output` translation unit still includes `audio_output_dispatch_submit`,
+which calls the CoreAudio adapter dispatch on Apple platforms; removing that
+dispatch remains an outstanding private refactor/deferral.
+
+Track 015 S5 implemented the private device-driven route under this direction
+and completed the application cutover: the real legacy exact-N renderer, the
+private CoreAudio adapter lifecycle/callback with control-side quiescence and
+lock-free admission gate, workspace-only conversion, the real HAL Output Audio
+Unit facade with a strict 44.1/48 kHz negotiated-rate gate, and the deletion of
+the SDL live-audio path, the `-o` file-output path, and the `-b`, `-8`, `-f`,
+`-o`, `-w`, and `-v` options. The S4/S5.1–S5.5 device-free coordination,
+bound-instance, quiescence, workspace, and admission evidence remains in the
+Track as the deterministic test foundation for this route. Track 015
+S6.2–S6.4b delivered the private rate-0 startup-selection sentinel with a
+verified 44.1/48 kHz configured rate and control-side renderer preparation
+before bind/start, and the private legacy producer's blend-then-widen
+normalization (blended int32 lanes reconstructed to their low-16 historical
+PCM-domain value and multiplied by 65536 into the existing signed-32 Audio
+Frame Blocks); the generic
+adapter conversion remains signed-32/2^31. `voices_01` is a self-authored
+supplemental audible-smoke fixture, and a listener confirmed real 48 kHz
+`voices_01` playback. Track 015 S6.5 (final validation/documentation) is
+complete: the full CTest suite passes 8/8, the required documentation was
+reconciled, and the Phase 4 roadmap was revised (Phase 4 revision 14; canonical
+index revision 21). S7 (completion) is checked: Track 015 is completed at
+`.backlog/COMPLETED/2026/TRACK_015_COMPLETED_coreaudio_live_route_and_sdl_retirement.md`.
+Stage 3 remains in progress pending its wider acceptance/merge.
+
+This direction remains target-only at the public boundary: the public Audio
+Output Port, public C API, target `Mixer`, non-macOS adapters, the future GUI,
+live input, rendered-file export, the device-rate-change restart policy,
+workspace release/close, invalid storage-length proof, and general real-module
+loader expansion remain deferred. General real-module loader compatibility in
+particular remains deferred after the recorded XOut2 rejection — bounded
+fixture evidence only, no format-wide promise — and the design does not promise
+current behavior or compatibility. See
+[`AUDIO_RENDERING_DESIGN.md`](AUDIO_RENDERING_DESIGN.md),
+[ADR-009](adr/ADR-009-callback-driven-audio-rendering.md), and
+[ADR-010](adr/ADR-010-native-adapter-ownership-and-private-demand-coordination.md).
 
 ### Phase 4 compatibility policy
 
@@ -118,10 +213,11 @@ appropriate evidence. This is not a SynthTracker v1 compatibility promise.
 
 The current baseline is C23 validated on macOS with Clang. macOS is the current
 and only platform scope. Other-platform support requires an explicit product
-decision recorded in project memory. The SDL 1.2-era API surface remains the
-audio dependency and the legacy `-o` output path; compatible temporary live
-playback is the private device-free submission described above (CoreAudio
-adapter on macOS, null-adapter fallback elsewhere).
+decision recorded in project memory. The SDL 1.2-era audio API surface and the
+legacy `-o` output path are retired; live playback is the private device-driven
+CoreAudio route described above (HAL Output Audio Unit facade on macOS,
+unavailable production facade elsewhere), and the removed CLI options are
+rejected as unknown options.
 
 ### Validation by boundary
 
@@ -171,6 +267,39 @@ data types, extraction mechanics, or implementation contracts.
   Frame Blocks`.
 - `Audio Output` consumes `Audio Frame Blocks` through a device-independent
   port. CoreAudio and future adapters are implementations of that boundary.
+  Callback-driven rendering — the device owns render timing and the private
+  render boundary produces every requested block — is the approved live-route
+  direction per [ADR-009](adr/ADR-009-callback-driven-audio-rendering.md) and
+  is implemented privately by Track 015 (device-driven HAL Output Audio Unit
+  route, where a zero-frame workspace/HAL request is accepted at the adapter
+  without invoking the renderer or the exact-N coordinator), while this public
+  port remains target-only. The private
+  `audio_output` demand coordinator is a Track
+  015 private role distinct from this public port; ownership is decided by
+  [ADR-010](adr/ADR-010-native-adapter-ownership-and-private-demand-coordination.md).
+  Track 015 S5 implemented the device-free exact-N coordinator policy, the
+  device-free private adapter-owned bound instance, the device-free
+  deferred-stop-to-quiescence, the device-free borrowed preallocated conversion
+  workspace, the device-free workspace-mode startup rejection of invalid
+  preparation (NULL samples, zero capacity, and capacity
+  greater than `SIZE_MAX / 2` rejected before facade
+  lifecycle/bind/request/render/observer/allocation work, with the instance
+  INACTIVE and the direct bound-instance route valid), the real legacy exact-N
+  renderer, the lock-free admission gate, the HAL workspace-copy route, the
+  real HAL Output Audio Unit lifecycle/callback with control-side quiescence,
+  and the application cutover; the device-driven wiring is implemented and this
+  public port, `Mixer`, and the remaining deferred mechanics stay deferred.
+  Track 015 S6.2–S6.4b delivered the private rate-0 startup-selection sentinel
+  with control-side renderer preparation at the facade-verified 44.1/48 kHz
+  configured rate and the private legacy producer's blend-then-widen
+  normalization (blended int32 lanes reconstructed to their low-16 historical
+  PCM-domain value and multiplied by 65536 into the existing signed-32 Audio
+  Frame Blocks); S6.5 (final
+  validation/documentation) is complete (full CTest 8/8, required
+  documentation reconciled, Phase 4 roadmap revised to revision 14 with
+  canonical index revision 21) and S7 (completion) is checked: Track 015 is
+  completed (`.backlog/COMPLETED/2026/TRACK_015_COMPLETED_coreaudio_live_route_and_sdl_retirement.md`)
+  while Stage 3 remains in progress pending its wider acceptance/merge.
 - `Playback Engine` is the emergent `Tracker` + `Synthesizer` + `Mixer`
   subsystem, not another component.
 
@@ -229,6 +358,8 @@ contracts, and extraction are explicitly deferred.
 - [`GLOSSARY.md`](GLOSSARY.md) — canonical product and protocol terminology.
 - [`ARTIFACTS.md`](ARTIFACTS.md) — target component-boundary artifacts and open
   contracts.
+- [`AUDIO_RENDERING_DESIGN.md`](AUDIO_RENDERING_DESIGN.md) — callback-driven
+  audio rendering design direction.
 - [`MACRO_DESIGN.md`](MACRO_DESIGN.md) — pre-design macro-layer questions.
 - [`TFMXLegacy/README.md`](TFMXLegacy/README.md) — legacy format and player
   reference.

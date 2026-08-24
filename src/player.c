@@ -3,7 +3,6 @@
 #include "player.h"
 #include "tfmxsong.h"
 #include "machine/endian.h"
-#include "SDL.h"
 
 #define NOTSUPPORTED fprintf(stderr,"Found code %08x at step %04x in macro %02x",\
 				x.l,channel->MacroStep-1,channel->MacroNum)

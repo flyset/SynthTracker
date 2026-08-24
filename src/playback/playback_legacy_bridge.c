@@ -128,6 +128,13 @@ void tfmx_playback_legacy_bridge_reset(void)
     memset(&hdr, 0, sizeof(hdr));
 }
 
+void tfmx_playback_legacy_bridge_set_output_rate(unsigned int output_rate_hz)
+{
+    if (output_rate_hz != 0) {
+        outRate = output_rate_hz;
+    }
+}
+
 int tfmx_playback_legacy_bridge_tick(tfmx_voice_snapshot *snapshots)
 {
     unsigned int voice;

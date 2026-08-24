@@ -6,81 +6,71 @@ enable_testing()
 
 find_package(cmocka 2.0.2 CONFIG REQUIRED)
 
-# Set the C standard
 set(CMAKE_C_STANDARD 23)
 
-# SDL2 Configuration using sdl-config
-find_program(SDL_CONFIG sdl-config)
-execute_process(COMMAND ${SDL_CONFIG} --cflags OUTPUT_VARIABLE SDL_CFLAGS OUTPUT_STRIP_TRAILING_WHITESPACE)
-execute_process(COMMAND ${SDL_CONFIG} --libs OUTPUT_VARIABLE SDL_LIBS OUTPUT_STRIP_TRAILING_WHITESPACE)
+set(SYNTHTRACKER_PLAYBACK_SOURCES
+    src/playback/playback_context.c
+    src/playback/tfmx_loader.c
+    src/playback/playback_legacy_bridge.c
+    src/playback/playback_legacy_mixer.c
+    src/playback/playback_legacy_renderer.c
+    src/player.c
+)
 
-# Set compiler flags obtained from sdl-config
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${SDL_CFLAGS}")
-
-set(SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES)
+set(SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES
+    src/audio_output/adapters/coreaudio_adapter.c
+    src/audio_output/adapters/coreaudio_facade.c
+)
+set(SYNTHTRACKER_COREAUDIO_FRAMEWORKS)
 if(APPLE)
-    list(APPEND SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES
-        src/audio_output/adapters/coreaudio_adapter.c
+    list(APPEND SYNTHTRACKER_COREAUDIO_FRAMEWORKS
+        "-framework AudioToolbox"
+        "-framework AudioUnit"
+        "-framework CoreAudio"
     )
 endif()
 
-# OpenSSL Configuration (if required)
-# find_package(OpenSSL REQUIRED)
-
-# Endian Check
 include(TestBigEndian)
 TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
 if(IS_BIG_ENDIAN)
     add_definitions(-DWORDS_BIGENDIAN=1)
 endif()
 
-# Add the executable
-add_executable(SynthTracker
-    src/main.c
+set(SYNTHTRACKER_APPLICATION_SOURCES
     src/application.c
-    src/audio.c 
     src/audio_output/audio_output.c
     ${SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES}
-    src/player.c 
-    src/tfmx.c
+    ${SYNTHTRACKER_PLAYBACK_SOURCES}
+)
+
+add_executable(SynthTracker
+    src/main.c
+    ${SYNTHTRACKER_APPLICATION_SOURCES}
 )
 add_test(
     NAME test_synthtracker_cli_identity
     COMMAND $<TARGET_FILE:SynthTracker> -z
 )
 set_tests_properties(test_synthtracker_cli_identity PROPERTIES
-    PASS_REGULAR_EXPRESSION "SynthTracker v1.1.7/SDL|Do not run SynthTracker as 'root'!"
-    FAIL_REGULAR_EXPRESSION "tfmxplay|tfmx-play"
+    PASS_REGULAR_EXPRESSION "SynthTracker v1.1.7|Do not run SynthTracker as 'root'!"
+    FAIL_REGULAR_EXPRESSION "tfmxplay|tfmx-play|/SDL"
 )
 target_include_directories(SynthTracker PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/playback
 )
-if(APPLE)
-    target_compile_definitions(SynthTracker PRIVATE
-        SYNTHTRACKER_AUDIO_OUTPUT_USE_DISPATCH
-    )
-endif()
+target_link_libraries(SynthTracker PRIVATE
+    ${SYNTHTRACKER_COREAUDIO_FRAMEWORKS}
+)
 
-# Compile probes for the affected production translation units.
-add_library(tfmx_compile_probe OBJECT src/tfmx.c)
 add_library(player_compile_probe OBJECT src/player.c)
-
-set_target_properties(tfmx_compile_probe player_compile_probe PROPERTIES
+set_target_properties(player_compile_probe PROPERTIES
     C_STANDARD 23
     C_EXTENSIONS OFF
 )
-
-target_include_directories(tfmx_compile_probe PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
 target_include_directories(player_compile_probe PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-
-add_test(
-    NAME tfmx_compile_probe
-    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target tfmx_compile_probe
 )
 add_test(
     NAME player_compile_probe
@@ -98,12 +88,12 @@ add_executable(test_playback_context
 target_include_directories(test_playback_context PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/playback
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
 )
 target_compile_definitions(test_playback_context PRIVATE
     TFMX_SOURCE_ROOT="${CMAKE_SOURCE_DIR}"
 )
 target_link_libraries(test_playback_context PRIVATE cmocka::cmocka)
-
 add_test(
     NAME test_playback_context
     COMMAND test_playback_context
@@ -111,62 +101,59 @@ add_test(
 
 add_executable(test_application
     tests/application/test_application.c
-    src/application.c
-    src/tfmx.c
-    src/player.c
-    src/audio.c
-    src/audio_output/audio_output.c
-    ${SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES}
+    ${SYNTHTRACKER_APPLICATION_SOURCES}
 )
 target_include_directories(test_application PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/playback
 )
 target_link_libraries(test_application PRIVATE
     cmocka::cmocka
-    ${SDL_LIBS}
+    ${SYNTHTRACKER_COREAUDIO_FRAMEWORKS}
 )
-if(APPLE)
-    target_compile_definitions(test_application PRIVATE
-        SYNTHTRACKER_AUDIO_OUTPUT_USE_DISPATCH
-    )
-endif()
-
 add_test(
     NAME test_application
     COMMAND test_application
 )
 
-add_executable(test_application_strict_profile
-    tests/application/test_application_strict_profile.c
-    src/application.c
+add_executable(test_application_removed_options
+    tests/application/test_application_removed_options.c
+    ${SYNTHTRACKER_APPLICATION_SOURCES}
 )
-target_include_directories(test_application_strict_profile PRIVATE
+target_include_directories(test_application_removed_options PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/playback
 )
-target_link_libraries(test_application_strict_profile PRIVATE
+target_link_libraries(test_application_removed_options PRIVATE
     cmocka::cmocka
+    ${SYNTHTRACKER_COREAUDIO_FRAMEWORKS}
 )
-
 add_test(
-    NAME test_application_strict_profile
-    COMMAND test_application_strict_profile
+    NAME test_application_removed_options
+    COMMAND test_application_removed_options
 )
 
 add_executable(test_application_audio_lifecycle
     tests/application/test_application_audio_lifecycle.c
-    src/application.c
-    src/audio.c
+    tests/audio_output/fake_coreaudio_facade.c
+    ${SYNTHTRACKER_APPLICATION_SOURCES}
 )
 target_include_directories(test_application_audio_lifecycle PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/application
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/playback
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/audio_output
+)
+target_compile_definitions(test_application_audio_lifecycle PRIVATE
+    SYNTHTRACKER_APPLICATION_TEST
+    TFMX_SOURCE_ROOT="${CMAKE_SOURCE_DIR}"
 )
 target_link_libraries(test_application_audio_lifecycle PRIVATE
     cmocka::cmocka
+    ${SYNTHTRACKER_COREAUDIO_FRAMEWORKS}
 )
-
 add_test(
     NAME test_application_audio_lifecycle
     COMMAND test_application_audio_lifecycle
@@ -174,43 +161,50 @@ add_test(
 
 add_executable(test_audio_output
     tests/audio_output/test_audio_output.c
+    tests/audio_output/fake_coreaudio_facade.c
     src/audio_output/audio_output.c
     ${SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES}
 )
 target_include_directories(test_audio_output PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/audio_output
 )
 target_compile_definitions(test_audio_output PRIVATE
     SYNTHTRACKER_AUDIO_OUTPUT_TEST_PROBE
 )
-target_link_libraries(test_audio_output PRIVATE cmocka::cmocka)
-
+target_link_libraries(test_audio_output PRIVATE
+    cmocka::cmocka
+    ${SYNTHTRACKER_COREAUDIO_FRAMEWORKS}
+)
 add_test(
     NAME test_audio_output
     COMMAND test_audio_output
 )
 
-add_executable(test_audio_routing
-    tests/audio_output/test_audio_routing.c
-    tests/audio_output/recording_sink.c
-    src/audio.c
-    src/player.c
-    src/tfmx.c
-)
-target_include_directories(test_audio_routing PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/audio_output
-)
-target_link_libraries(test_audio_routing PRIVATE
-    cmocka::cmocka
-    ${SDL_LIBS}
-)
-
-add_test(
-    NAME test_audio_routing
-    COMMAND test_audio_routing
-)
-
-# Link against the SDL2 library
-target_link_libraries(SynthTracker ${SDL_LIBS})
+if(APPLE)
+    add_executable(test_legacy_exact_renderer
+        tests/audio_output/test_legacy_exact_renderer.c
+        tests/audio_output/fake_coreaudio_facade.c
+        src/audio_output/audio_output.c
+        ${SYNTHTRACKER_COREAUDIO_ADAPTER_SOURCES}
+        ${SYNTHTRACKER_PLAYBACK_SOURCES}
+    )
+    target_include_directories(test_legacy_exact_renderer PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/audio_output
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/playback
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/audio_output
+    )
+    target_compile_definitions(test_legacy_exact_renderer PRIVATE
+        SYNTHTRACKER_AUDIO_OUTPUT_TEST_PROBE
+        TFMX_SOURCE_ROOT="${CMAKE_SOURCE_DIR}"
+    )
+    target_link_libraries(test_legacy_exact_renderer PRIVATE
+        cmocka::cmocka
+        ${SYNTHTRACKER_COREAUDIO_FRAMEWORKS}
+    )
+    add_test(
+        NAME test_legacy_exact_renderer
+        COMMAND test_legacy_exact_renderer
+    )
+endif()

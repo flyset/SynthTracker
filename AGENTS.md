@@ -47,9 +47,6 @@ lineage; it does not name the DAW product.
   temporary development scaffold. Every Phase 4 Track must assess compatibility
   impact and retain appropriate evidence; this is not a SynthTracker v1
   compatibility promise.
-- Preserve the current SDL-era audio features exposed through the SDL 1.2-era
-  API surface (stereo blending, low-pass filter); SDL 1.1.7 remains historical
-  context.
 - Designing the future modern C GUI DAW layer on top of the engine; no GUI or
   editing functionality is implemented yet.
 - Phase 3 is delivered. Phase 4 is next: component extraction under the

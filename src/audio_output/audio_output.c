@@ -4,6 +4,23 @@
 #include "adapters/coreaudio_adapter.h"
 #endif
 
+audio_output_submit_result audio_output_coordinate_frame_request(
+    size_t requested_frame_count,
+    audio_output_frame_renderer renderer,
+    audio_output_frame_delivery delivery,
+    void *context)
+{
+    const audio_frame_block block =
+        renderer(context, requested_frame_count);
+    if (block.frame_count != requested_frame_count) {
+        return AUDIO_OUTPUT_SUBMIT_REJECTED;
+    }
+    if (requested_frame_count > 0 && block.frames == NULL) {
+        return AUDIO_OUTPUT_SUBMIT_REJECTED;
+    }
+    return delivery(context, &block);
+}
+
 audio_output_submit_result audio_output_null_adapter_submit(
     audio_output_null_adapter *adapter,
     const audio_frame_block *block)

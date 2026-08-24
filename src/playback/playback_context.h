@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+#include "audio_output.h"
+
 typedef struct tfmx_playback_context tfmx_playback_context;
 
 /* Result of loading the two required, separate TFMX data files. */
@@ -67,10 +69,15 @@ tfmx_start_status tfmx_playback_context_start(tfmx_playback_context *context,
                                               unsigned int subsong);
 
 tfmx_tick_status tfmx_playback_context_tick(tfmx_playback_context *context);
+tfmx_tick_status tfmx_playback_context_tick_at_rate(
+    tfmx_playback_context *context, unsigned int output_rate_hz);
 tfmx_render_status tfmx_playback_context_render(tfmx_playback_context *context,
                                                 unsigned char *output,
                                                 size_t capacity,
                                                 size_t *bytes_written);
+tfmx_render_status tfmx_playback_context_render_frames(
+    tfmx_playback_context *context, audio_frame *output, size_t capacity,
+    size_t *frames_written);
 int tfmx_playback_context_is_complete(const tfmx_playback_context *context);
 tfmx_snapshot_status tfmx_playback_context_snapshot(
     const tfmx_playback_context *context, unsigned int voice,

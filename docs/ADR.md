@@ -41,12 +41,16 @@ record to its replacement. Product-management decisions remain in the
 - [ADR-006 — Private Header Co-location and Include Retirement](adr/ADR-006-private-header-colocation-and-include-retirement.md) — **Accepted**, 2026-08-19.
 - [ADR-007 — Audio Frame Block Boundary and Fixed First Format](adr/ADR-007-audio-frame-block-boundary-and-fixed-first-format.md) — **Superseded** by [ADR-008](adr/ADR-008-audio-frame-block-mixed-value-boundary.md), 2026-08-20.
 - [ADR-008 — Audio Frame Block Mixed-Value Boundary](adr/ADR-008-audio-frame-block-mixed-value-boundary.md) — **Accepted**, 2026-08-22.
+- [ADR-009 — Callback-Driven Audio Rendering](adr/ADR-009-callback-driven-audio-rendering.md) — **Accepted**, 2026-08-22.
+- [ADR-010 — Native Adapter Ownership and Private Demand Coordination](adr/ADR-010-native-adapter-ownership-and-private-demand-coordination.md) — **Accepted**, 2026-08-23.
 
 ## Related documentation
 
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — concise current-system overview and
   architecture entrypoint.
 - [`ASR.md`](ASR.md) — architecturally significant requirement register.
+- [`AUDIO_RENDERING_DESIGN.md`](AUDIO_RENDERING_DESIGN.md) — callback-driven
+  audio rendering design direction.
 - [`VISION.md`](VISION.md) — product intent and future direction.
 - [`../MEMORY.md`](../MEMORY.md) — product-management decisions and roadmap
   context.

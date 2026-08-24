@@ -19,6 +19,20 @@ typedef enum {
     AUDIO_OUTPUT_SUBMIT_REJECTED,
 } audio_output_submit_result;
 
+typedef audio_frame_block (*audio_output_frame_renderer)(
+    void *context,
+    size_t requested_frame_count);
+
+typedef audio_output_submit_result (*audio_output_frame_delivery)(
+    void *context,
+    const audio_frame_block *block);
+
+audio_output_submit_result audio_output_coordinate_frame_request(
+    size_t requested_frame_count,
+    audio_output_frame_renderer renderer,
+    audio_output_frame_delivery delivery,
+    void *context);
+
 typedef struct {
     size_t accepted_block_count;
     size_t accepted_frame_count;

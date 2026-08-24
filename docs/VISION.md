@@ -4,14 +4,16 @@
 
 SynthTracker is one system containing one application container: a modern,
 maintainable C product and repository. The current transitional product is one
-legacy CLI application with SDL-backed audio. The future target is that same
+legacy CLI application with a private device-driven CoreAudio live route on
+macOS. The future target is that same
 system's GUI-first digital audio workstation (DAW) using SDL. TFMX denotes the
 legacy format, modules, semantics, and temporary compatibility lineage.
 
 ## What it is
 
 - A current transitional CLI that plays TFMX modules (including MasterBlazer,
-  Turrican II/III, Z-Out, and others), with SDL-backed audio.
+  Turrican II/III, Z-Out, and others), with a private device-driven CoreAudio
+  live route on macOS.
 - A narrow internal and emerging playback seam being refactored out of the
   legacy C player; it is not yet a completed reusable playback core.
 - A future modern C GUI-first DAW foundation. All SynthTracker-owned production and test
@@ -53,6 +55,7 @@ legacy format, modules, semantics, and temporary compatibility lineage.
 - Layered roadmap: establish the reusable playback core, then the GUI DAW (pattern editing,
   composing, mixing). Format extension comes after the DAW exists.
 - Phase 3 is delivered. Phase 4 is next: component extraction.
-- The intended macOS Audio Output Adapter is CoreAudio. Detailed GUI design
-  and CoreAudio integration remain open.
+- The intended macOS Audio Output Adapter is CoreAudio; a private
+  device-driven CoreAudio route exists, while the public Audio Output Port and
+  detailed GUI design remain open.
 - Detailed sequencing is deferred until the open questions resolve.
