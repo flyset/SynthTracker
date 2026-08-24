@@ -36,13 +36,33 @@ direction, scope, priorities, and roadmaps are held in project memory.
 - **Verification:** Historical bounded self-authored fixture coverage,
   automated component/integration tests, and direct legacy checks remain
   recorded evidence. This evidence does not constitute format-wide proof or a
-  SynthTracker v1 compatibility promise.
+  SynthTracker v1 compatibility promise. The recorded XOut2 module/sample
+  rejection is historical Track 015 evidence of the then-fixture-only loader;
+  Track 016 later delivered bounded structural load/start admission in the
+  private loader/bridge (magic/minimum-size and subsong-0
+  `start[0]`/inclusive `end[0]` safeguards, zero-pointer defaults
+  0x800/0x400/0x600, independent pattern/macro table scans up to 128
+  entries with normalized metadata, `first_pattern` strictly
+  after `trackstart`, a subsong-0 inclusive `end` requiring all `end + 1`
+  complete 16-byte tracksteps within `[trackstart, first_pattern)`, raw
+  opaque SMPL with a two-byte minimum, and bridge-owned capacity-128
+  normalized arrays), with the loader enforcing primary admission and the
+  private bridge repeating both load/start checks defensively before legacy
+  state binding/start. This is a restrictive private structural-admission
+  correction; general real-module loader compatibility remains deferred with
+  no format-wide promise.
 - **Related ADRs:** [ADR-001](adr/ADR-001-new-engine-not-line-by-line-port.md), [ADR-002](adr/ADR-002-private-sdl-free-playback-evidence-seam.md).
 
 **Current Phase 4 policy:** Phase 3 is delivered; Phase 4 is in progress. Preserve
 current TFMX behavior where practical only as a temporary development scaffold.
 Every Phase 4 Track must assess compatibility impact and retain appropriate
 evidence. This policy is not a SynthTracker v1 compatibility requirement.
+Track 016 assessed its impact as a restrictive private structural-admission
+correction: a bounded private module-admission change with no intended
+interpreter/timing/audio semantic change beyond admissibility and reachability
+and no public API/ABI, artifact contract, persistence, adapter, or
+compatibility-promise change; observed playback differences are recorded, not
+resolved.
 
 ### ASR-003 — UI-agnostic playback core
 
@@ -193,9 +213,12 @@ evidence. This policy is not a SynthTracker v1 compatibility requirement.
   while Stage 3 remains in progress pending its wider acceptance/merge. No public
   API/port, target `Mixer`, non-macOS adapter, live input, rendered-file
   export, device-rate-change restart policy, workspace release/close, invalid
-  storage-length proof, resampler, or loader-expansion work was added; general
-  real-module loader compatibility remains deferred after the recorded XOut2
-  rejection with no format-wide promise.
+  storage-length proof, resampler, or loader-expansion work was added; the
+  recorded XOut2 rejection remains historical Track 015 evidence, and Track 016
+  later delivered bounded structural load/start admission as a restrictive
+  private structural-admission correction (self-authored structural contracts
+  plus bounded supplemental manual corpus evidence) while general real-module
+  loader compatibility remains deferred with no format-wide promise.
 - **Verification:** Deterministic automated component tests drive the private
   render boundary with synthetic frame-count requests (variable and zero) and
   lifecycle contracts — including start/stop ownership and callback quiescence
@@ -231,7 +254,9 @@ evidence. This policy is not a SynthTracker v1 compatibility requirement.
   state-machine details beyond the implemented control-side quiescence, event
   handoff/clock/overflow semantics, threads/locks beyond the lock-free
   admission gate, invalid storage-length proof, workspace release/close, and
-  general real-module loader expansion remain deferred. ADR-010 (Accepted,
+  general real-module loader expansion remain deferred (Track 016 delivered
+  bounded structural load/start admission; general real-module loader
+  compatibility remains deferred). ADR-010 (Accepted,
   2026-08-23) assigns native adapter ownership of device callbacks, lifecycle,
   and conversion, and the private `audio_output` synchronous device-demand
   coordinator role; Track 015 S5 implemented and component-tested that

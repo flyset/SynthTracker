@@ -1,7 +1,6 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
 
 #include <setjmp.h>
@@ -9,7 +8,10 @@
 #include <cmocka.h>
 
 #include "../../src/playback/playback_context.h"
+#include "../../src/playback/playback_legacy_bridge.h"
 #include "../../src/playback/tfmx_loader.h"
+
+extern unsigned int editbuf[];
 
 static void test_loader_normalizes_fixture_tables(void **state)
 {
@@ -24,9 +26,354 @@ static void test_loader_normalizes_fixture_tables(void **state)
     assert_int_equal(candidate.metadata.trackstart, 0x230);
     assert_int_equal(candidate.metadata.first_pattern, 0x250);
     assert_int_equal(candidate.metadata.pattern_count, 1);
-    assert_int_equal(candidate.metadata.macro_count, 1);
+    assert_int_equal(candidate.metadata.macro_count, 2);
     assert_int_equal(candidate.metadata.patterns[0], (0x250 - 0x200) / 4);
     assert_int_equal(candidate.metadata.macros[0], (0x260 - 0x200) / 4);
+    assert_int_equal(candidate.metadata.macros[1], (0x250 - 0x200) / 4);
+    tfmx_loader_candidate_dispose(&candidate);
+}
+
+static void test_loader_resolves_default_header_pointers(void **state)
+{
+    tfmx_loader_candidate candidate;
+
+    (void)state;
+    assert_int_equal(tfmx_loader_read(
+                         TFMX_SOURCE_ROOT "/tests/fixtures/mdat.default_pointers",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8",
+                         &candidate),
+                     TFMX_LOAD_SUCCESS);
+    assert_int_equal(candidate.metadata.trackstart, 0x800);
+    assert_int_equal(candidate.metadata.pattstart, 0x400);
+    assert_int_equal(candidate.metadata.macrostart, 0x600);
+    assert_int_equal(candidate.metadata.pattern_count, 1);
+    assert_int_equal(candidate.metadata.macro_count, 1);
+    assert_int_equal(candidate.metadata.patterns[0], (0x820 - 0x200) / 4);
+    assert_int_equal(candidate.metadata.macros[0], (0x830 - 0x200) / 4);
+    assert_int_equal(candidate.metadata.first_pattern, 0x820);
+    tfmx_loader_candidate_dispose(&candidate);
+    assert_null(candidate.mdat);
+    assert_null(candidate.smpl);
+}
+
+static void test_loader_scans_independent_tables_with_bounded_capacity(void **state)
+{
+    tfmx_loader_candidate candidate;
+
+    (void)state;
+    assert_int_equal(tfmx_loader_read(
+                         TFMX_SOURCE_ROOT "/tests/fixtures/mdat.table_scan_2p3m",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8",
+                         &candidate),
+                     TFMX_LOAD_SUCCESS);
+    assert_int_equal(candidate.metadata.pattern_count, 2);
+    assert_int_equal(candidate.metadata.macro_count, 3);
+    assert_int_equal(candidate.metadata.patterns[0], (0x260 - 0x200) / 4);
+    assert_int_equal(candidate.metadata.patterns[1], (0x270 - 0x200) / 4);
+    assert_int_equal(candidate.metadata.macros[0], (0x280 - 0x200) / 4);
+    assert_int_equal(candidate.metadata.macros[1], (0x290 - 0x200) / 4);
+    assert_int_equal(candidate.metadata.macros[2], (0x2a0 - 0x200) / 4);
+    assert_int_equal(candidate.metadata.first_pattern, 0x260);
+    tfmx_loader_candidate_dispose(&candidate);
+
+    assert_int_equal(tfmx_loader_read(
+                         TFMX_SOURCE_ROOT "/tests/fixtures/mdat.table_scan_cap128",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8",
+                         &candidate),
+                     TFMX_LOAD_SUCCESS);
+    assert_int_equal(candidate.metadata.pattern_count, 1);
+    assert_int_equal(candidate.metadata.macro_count, 128);
+    assert_int_equal(candidate.metadata.patterns[0], (0x260 - 0x200) / 4);
+    assert_int_equal(candidate.metadata.macros[0], (0x520 - 0x200) / 4);
+    assert_int_equal(candidate.metadata.macros[127], (0x71c - 0x200) / 4);
+    tfmx_loader_candidate_dispose(&candidate);
+}
+
+static void test_loader_admits_leading_zero_smpl_without_header_rule(void **state)
+{
+    static const unsigned char expected_smpl[] = { 0x00, 0x00 };
+    tfmx_loader_candidate candidate;
+
+    (void)state;
+    assert_int_equal(tfmx_loader_read(
+                         TFMX_SOURCE_ROOT "/tests/fixtures/mdat.step8",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.raw_leading_zero",
+                         &candidate),
+                     TFMX_LOAD_SUCCESS);
+    assert_int_equal(candidate.smpl_size, sizeof(expected_smpl));
+    assert_memory_equal(candidate.smpl, expected_smpl, sizeof(expected_smpl));
+    tfmx_loader_candidate_dispose(&candidate);
+    assert_null(candidate.mdat);
+    assert_null(candidate.smpl);
+}
+
+static void test_loader_treats_smpl_as_opaque_without_macro_range_inference(
+    void **state)
+{
+    tfmx_loader_candidate candidate;
+
+    (void)state;
+    assert_int_equal(tfmx_loader_read(
+                         TFMX_SOURCE_ROOT "/tests/fixtures/mdat.raw_smpl_opaque",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8",
+                         &candidate),
+                     TFMX_LOAD_SUCCESS);
+    tfmx_loader_candidate_dispose(&candidate);
+    assert_null(candidate.mdat);
+    assert_null(candidate.smpl);
+}
+
+static void test_loader_rejects_one_byte_smpl(void **state)
+{
+    tfmx_loader_candidate candidate;
+
+    (void)state;
+    assert_int_equal(tfmx_loader_read(
+                         TFMX_SOURCE_ROOT "/tests/fixtures/mdat.table_scan_2p3m",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.raw_one_byte",
+                         &candidate),
+                     TFMX_LOAD_INVALID_FORMAT);
+    tfmx_loader_candidate_dispose(&candidate);
+    assert_null(candidate.mdat);
+    assert_null(candidate.smpl);
+}
+
+static void test_legacy_bridge_owns_voices_01_tables_and_rejects_out_of_range_metadata(
+    void **state)
+{
+    tfmx_loader_candidate candidate;
+    struct tfmx_loader_metadata metadata;
+    tfmx_voice_snapshot snapshots[TFMX_PLAYBACK_SNAPSHOT_VOICE_COUNT];
+    size_t copied_words;
+    size_t macro_table_slot;
+    unsigned int tick;
+    int found_jointly_active = 0;
+
+    (void)state;
+    assert_int_equal(tfmx_loader_read(
+                         TFMX_SOURCE_ROOT "/tests/fixtures/mdat.voices_01",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.voices_01",
+                         &candidate),
+                     TFMX_LOAD_SUCCESS);
+    metadata = candidate.metadata;
+    copied_words = (candidate.mdat_size - 0x200) / sizeof(editbuf[0]);
+    macro_table_slot = (metadata.macrostart - 0x200) / sizeof(editbuf[0]);
+
+    assert_int_equal(tfmx_playback_legacy_bridge_start(
+                         candidate.mdat, candidate.mdat_size, candidate.smpl,
+                         candidate.smpl_size, &metadata, 0),
+                     1);
+    /* Mutate the copied on-disk macro table after bridge start. */
+    editbuf[macro_table_slot] = (unsigned int)metadata.macros[1];
+    for (tick = 0; tick < 8; ++tick) {
+        assert_int_equal(tfmx_playback_legacy_bridge_tick(snapshots), 1);
+        if (snapshots[0].active && snapshots[1].active) {
+            found_jointly_active = 1;
+            assert_int_equal(snapshots[0].volume, 18);
+            break;
+        }
+    }
+    assert_true(found_jointly_active);
+    tfmx_playback_legacy_bridge_reset();
+
+    metadata = candidate.metadata;
+    metadata.patterns[0] = (int)copied_words;
+    assert_int_equal(tfmx_playback_legacy_bridge_start(
+                         candidate.mdat, candidate.mdat_size, candidate.smpl,
+                         candidate.smpl_size, &metadata, 0),
+                     0);
+    tfmx_playback_legacy_bridge_reset();
+
+    metadata = candidate.metadata;
+    metadata.macros[0] = (int)copied_words;
+    assert_int_equal(tfmx_playback_legacy_bridge_start(
+                         candidate.mdat, candidate.mdat_size, candidate.smpl,
+                         candidate.smpl_size, &metadata, 0),
+                     0);
+    tfmx_playback_legacy_bridge_reset();
+    tfmx_loader_candidate_dispose(&candidate);
+}
+
+static int reduced_voices_01_tables_activate_voice_one(
+    const tfmx_loader_candidate *candidate,
+    const struct tfmx_loader_metadata *metadata)
+{
+    tfmx_voice_snapshot snapshots[TFMX_PLAYBACK_SNAPSHOT_VOICE_COUNT];
+    int found_voice_zero_active = 0;
+    int found_voice_one_active = 0;
+
+    assert_int_equal(tfmx_playback_legacy_bridge_start(
+                         candidate->mdat, candidate->mdat_size, candidate->smpl,
+                         candidate->smpl_size, metadata, 0),
+                     1);
+    for (unsigned int tick = 0; tick < 8; ++tick) {
+        assert_int_equal(tfmx_playback_legacy_bridge_tick(snapshots), 1);
+        if (snapshots[0].active) {
+            found_voice_zero_active = 1;
+        }
+        if (snapshots[1].active) {
+            found_voice_one_active = 1;
+        }
+    }
+    assert_true(found_voice_zero_active);
+    tfmx_playback_legacy_bridge_reset();
+    return found_voice_one_active;
+}
+
+static void test_legacy_bridge_reset_clears_unused_table_slots(void **state)
+{
+    tfmx_loader_candidate candidate;
+    struct tfmx_loader_metadata metadata;
+    int pattern_restart_activated_voice_one;
+    int macro_restart_activated_voice_one;
+
+    (void)state;
+    assert_int_equal(tfmx_loader_read(
+                         TFMX_SOURCE_ROOT "/tests/fixtures/mdat.voices_01",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.voices_01",
+                         &candidate),
+                     TFMX_LOAD_SUCCESS);
+
+    /* Seed both bridge-owned slots before the reduced pattern-table restart. */
+    metadata = candidate.metadata;
+    assert_int_equal(tfmx_playback_legacy_bridge_start(
+                         candidate.mdat, candidate.mdat_size, candidate.smpl,
+                         candidate.smpl_size, &metadata, 0),
+                     1);
+    tfmx_playback_legacy_bridge_reset();
+    metadata = candidate.metadata;
+    metadata.pattern_count = 1;
+    metadata.macro_count = 2;
+    pattern_restart_activated_voice_one =
+        reduced_voices_01_tables_activate_voice_one(&candidate, &metadata);
+
+    /* Re-seed both slots before the reduced macro-table restart. */
+    metadata = candidate.metadata;
+    assert_int_equal(tfmx_playback_legacy_bridge_start(
+                         candidate.mdat, candidate.mdat_size, candidate.smpl,
+                         candidate.smpl_size, &metadata, 0),
+                     1);
+    tfmx_playback_legacy_bridge_reset();
+    metadata = candidate.metadata;
+    metadata.pattern_count = 2;
+    metadata.macro_count = 1;
+    macro_restart_activated_voice_one =
+        reduced_voices_01_tables_activate_voice_one(&candidate, &metadata);
+
+    assert_false(pattern_restart_activated_voice_one);
+    assert_false(macro_restart_activated_voice_one);
+    tfmx_loader_candidate_dispose(&candidate);
+}
+
+static void assert_loader_rejects_malformed_pair_and_disposes(const char *case_name)
+{
+    char mdat_path[512];
+    char smpl_path[512];
+    tfmx_loader_candidate candidate;
+
+    assert_true(snprintf(mdat_path, sizeof(mdat_path),
+                         "%s/tests/fixtures/mdat.malformed_%s",
+                         TFMX_SOURCE_ROOT, case_name) > 0);
+    assert_true(snprintf(smpl_path, sizeof(smpl_path),
+                         "%s/tests/fixtures/smpl.malformed_%s",
+                         TFMX_SOURCE_ROOT, case_name) > 0);
+    assert_int_equal(tfmx_loader_read(mdat_path, smpl_path, &candidate),
+                     TFMX_LOAD_INVALID_FORMAT);
+    tfmx_loader_candidate_dispose(&candidate);
+    assert_null(candidate.mdat);
+    assert_null(candidate.smpl);
+}
+
+static void test_loader_rejects_first_pattern_equal_trackstart(void **state)
+{
+    (void)state;
+    assert_loader_rejects_malformed_pair_and_disposes(
+        "first_pattern_equal_trackstart");
+}
+
+static void test_loader_rejects_first_pattern_before_trackstart(void **state)
+{
+    (void)state;
+    assert_loader_rejects_malformed_pair_and_disposes(
+        "first_pattern_before_trackstart");
+}
+
+static void test_loader_rejects_end_span(void **state)
+{
+    (void)state;
+    assert_loader_rejects_malformed_pair_and_disposes("end_span");
+}
+
+static void assert_bridge_rejects_and_resets(
+    const tfmx_loader_candidate *candidate, const unsigned char *mdat,
+    const struct tfmx_loader_metadata *metadata)
+{
+    assert_int_equal(tfmx_playback_legacy_bridge_start(
+                         candidate->mdat, candidate->mdat_size, candidate->smpl,
+                         candidate->smpl_size, &candidate->metadata, 0),
+                     1);
+    assert_int_equal(tfmx_playback_legacy_bridge_start(
+                         mdat, candidate->mdat_size, candidate->smpl,
+                         candidate->smpl_size, metadata, 0),
+                     0);
+    assert_true(tfmx_playback_legacy_bridge_is_complete());
+    tfmx_playback_legacy_bridge_reset();
+}
+
+static void test_legacy_bridge_rejects_first_pattern_equal_trackstart(void **state)
+{
+    tfmx_loader_candidate candidate;
+    struct tfmx_loader_metadata metadata;
+
+    (void)state;
+    assert_int_equal(tfmx_loader_read(
+                         TFMX_SOURCE_ROOT "/tests/fixtures/mdat.step8",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8",
+                         &candidate),
+                     TFMX_LOAD_SUCCESS);
+    metadata = candidate.metadata;
+    metadata.first_pattern = metadata.trackstart;
+    assert_bridge_rejects_and_resets(&candidate, candidate.mdat, &metadata);
+    tfmx_loader_candidate_dispose(&candidate);
+}
+
+static void test_legacy_bridge_rejects_first_pattern_before_trackstart(void **state)
+{
+    tfmx_loader_candidate candidate;
+    struct tfmx_loader_metadata metadata;
+
+    (void)state;
+    assert_int_equal(tfmx_loader_read(
+                         TFMX_SOURCE_ROOT "/tests/fixtures/mdat.step8",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8",
+                         &candidate),
+                     TFMX_LOAD_SUCCESS);
+    metadata = candidate.metadata;
+    metadata.first_pattern = metadata.trackstart - 0x10;
+    assert_bridge_rejects_and_resets(&candidate, candidate.mdat, &metadata);
+    tfmx_loader_candidate_dispose(&candidate);
+}
+
+static void test_legacy_bridge_rejects_end_span(void **state)
+{
+    tfmx_loader_candidate candidate;
+    struct tfmx_loader_metadata metadata;
+    unsigned char *copied_mdat;
+
+    (void)state;
+    assert_int_equal(tfmx_loader_read(
+                         TFMX_SOURCE_ROOT "/tests/fixtures/mdat.step8",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8",
+                         &candidate),
+                     TFMX_LOAD_SUCCESS);
+    copied_mdat = malloc(candidate.mdat_size);
+    assert_non_null(copied_mdat);
+    memcpy(copied_mdat, candidate.mdat, candidate.mdat_size);
+    assert_int_equal(copied_mdat[0x141], 0x01);
+    copied_mdat[0x141] = 0x02;
+    metadata = candidate.metadata;
+    assert_bridge_rejects_and_resets(&candidate, copied_mdat, &metadata);
+    free(copied_mdat);
     tfmx_loader_candidate_dispose(&candidate);
 }
 
@@ -98,154 +445,6 @@ static void test_playback_context_rejects_malformed_data_transactionally(void **
     assert_int_equal(tfmx_playback_context_load(context, "/dev/null", smpl_path),
                      TFMX_LOAD_INVALID_FORMAT);
     assert_true(tfmx_playback_context_is_loaded(context));
-
-    tfmx_playback_context_destroy(context);
-}
-
-static int copy_fixture_with_byte_changed(const char *source_path,
-                                          unsigned int offset,
-                                          unsigned char value,
-                                          char *output_path,
-                                          size_t output_path_size)
-{
-    FILE *source;
-    FILE *output;
-    long length;
-    unsigned char *data;
-    int descriptor;
-    int result = -1;
-
-    source = fopen(source_path, "rb");
-    if (source == NULL || fseek(source, 0, SEEK_END) != 0 ||
-        (length = ftell(source)) < 0 || fseek(source, 0, SEEK_SET) != 0) {
-        if (source != NULL) {
-            fclose(source);
-        }
-        return -1;
-    }
-    data = malloc((size_t)length);
-    if (data == NULL || fread(data, 1, (size_t)length, source) != (size_t)length ||
-        offset >= (unsigned int)length) {
-        free(data);
-        fclose(source);
-        return -1;
-    }
-    fclose(source);
-    data[offset] = value;
-
-    assert_true(snprintf(output_path, output_path_size, "/tmp/tfmx-malformed-XXXXXX") > 0);
-    descriptor = mkstemp(output_path);
-    if (descriptor < 0) {
-        free(data);
-        return -1;
-    }
-    output = fdopen(descriptor, "wb");
-    if (output != NULL && fwrite(data, 1, (size_t)length, output) == (size_t)length &&
-        fclose(output) == 0) {
-        result = 0;
-    } else {
-        if (output != NULL) {
-            fclose(output);
-        } else {
-            close(descriptor);
-        }
-        unlink(output_path);
-    }
-    free(data);
-    return result;
-}
-
-static void test_playback_context_rejects_malformed_documented_structure(void **state)
-{
-    const char *fixture_path = TFMX_SOURCE_ROOT "/tests/fixtures/mdat.step8";
-    const char *smpl_path = TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8";
-    tfmx_playback_context *context = tfmx_playback_context_create();
-    char malformed_path[128];
-
-    (void)state;
-    assert_non_null(context);
-
-    assert_int_equal(copy_fixture_with_byte_changed(fixture_path, 0x231, 0x01,
-                                                    malformed_path, sizeof(malformed_path)),
-                     0);
-    assert_int_equal(tfmx_playback_context_load(context, malformed_path, smpl_path),
-                     TFMX_LOAD_INVALID_FORMAT);
-    unlink(malformed_path);
-
-    assert_int_equal(copy_fixture_with_byte_changed(fixture_path, 0x250, 0x81,
-                                                    malformed_path, sizeof(malformed_path)),
-                     0);
-    assert_int_equal(tfmx_playback_context_load(context, malformed_path, smpl_path),
-                     TFMX_LOAD_INVALID_FORMAT);
-    unlink(malformed_path);
-
-    tfmx_playback_context_destroy(context);
-}
-
-static void test_playback_context_rejects_invalid_fixture_semantics(void **state)
-{
-    const char *fixture_path = TFMX_SOURCE_ROOT "/tests/fixtures/mdat.step8";
-    const char *smpl_path = TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8";
-    tfmx_playback_context *context = tfmx_playback_context_create();
-    char mutated_path[128];
-    char reordered_path[128];
-    unsigned int inactive_channel;
-
-    (void)state;
-    assert_non_null(context);
-    assert_int_equal(tfmx_playback_context_load(context, fixture_path, smpl_path),
-                     TFMX_LOAD_SUCCESS);
-
-    /* Every inactive voice must retain its distinct disabled-channel binding. */
-    for (inactive_channel = 1; inactive_channel < 8; ++inactive_channel) {
-        assert_int_equal(copy_fixture_with_byte_changed(
-                             fixture_path, 0x230 + inactive_channel * 2 + 1,
-                             0x00, mutated_path, sizeof(mutated_path)),
-                         0);
-        assert_int_equal(tfmx_playback_context_load(context, mutated_path, smpl_path),
-                         TFMX_LOAD_INVALID_FORMAT);
-        assert_true(tfmx_playback_context_is_loaded(context));
-        unlink(mutated_path);
-    }
-
-    /* The pitch command must precede sample setup in the macro. */
-    assert_int_equal(copy_fixture_with_byte_changed(fixture_path, 0x260, 0x02,
-                                                    mutated_path, sizeof(mutated_path)),
-                     0);
-    assert_int_equal(tfmx_playback_context_load(context, mutated_path, smpl_path),
-                     TFMX_LOAD_INVALID_FORMAT);
-    assert_true(tfmx_playback_context_is_loaded(context));
-    unlink(mutated_path);
-
-    assert_int_equal(copy_fixture_with_byte_changed(fixture_path, 0x260, 0x02,
-                                                    mutated_path, sizeof(mutated_path)),
-                     0);
-    assert_int_equal(copy_fixture_with_byte_changed(mutated_path, 0x264, 0x09,
-                                                    reordered_path, sizeof(reordered_path)),
-                     0);
-    assert_int_equal(tfmx_playback_context_load(context, reordered_path, smpl_path),
-                     TFMX_LOAD_INVALID_FORMAT);
-    assert_true(tfmx_playback_context_is_loaded(context));
-    unlink(mutated_path);
-    unlink(reordered_path);
-
-    /* Reject a sample length that directly exceeds the two-byte SMPL payload. */
-    assert_int_equal(copy_fixture_with_byte_changed(fixture_path, 0x26b, 0x03,
-                                                    mutated_path, sizeof(mutated_path)),
-                     0);
-    assert_int_equal(tfmx_playback_context_load(context, mutated_path, smpl_path),
-                     TFMX_LOAD_INVALID_FORMAT);
-    assert_true(tfmx_playback_context_is_loaded(context));
-    unlink(mutated_path);
-
-    /* The pattern wait must cover the complete seven-word macro. */
-    assert_int_equal(copy_fixture_with_byte_changed(fixture_path, 0x257, 0x01,
-                                                    mutated_path, sizeof(mutated_path)),
-                     0);
-    assert_int_equal(tfmx_playback_context_load(context, mutated_path, smpl_path),
-                     TFMX_LOAD_INVALID_FORMAT);
-    assert_true(tfmx_playback_context_is_loaded(context));
-    unlink(mutated_path);
 
     tfmx_playback_context_destroy(context);
 }
@@ -756,24 +955,41 @@ static void assert_malformed_pair_preserves_step8(const char *case_name,
 MALFORMED_CASE_TEST(test_malformed_truncated_mdat, "truncated_mdat")
 MALFORMED_CASE_TEST(test_malformed_unaligned_track, "unaligned_track")
 MALFORMED_CASE_TEST(test_malformed_out_of_range_pattern, "out_of_range_pattern")
-MALFORMED_CASE_TEST(test_malformed_invalid_active_binding, "invalid_active_binding")
-MALFORMED_CASE_TEST(test_malformed_invalid_inactive_binding, "invalid_inactive_binding")
-MALFORMED_CASE_TEST(test_malformed_invalid_stop_step, "invalid_stop_step")
-MALFORMED_CASE_TEST(test_malformed_invalid_pattern_contract, "invalid_pattern_contract")
-MALFORMED_CASE_TEST(test_malformed_invalid_macro_ordering, "invalid_macro_ordering")
-MALFORMED_CASE_TEST(test_malformed_sample_range_overflow, "sample_range_overflow")
-MALFORMED_CASE_TEST(test_malformed_silent_sample_payload, "silent_sample_payload")
+MALFORMED_CASE_TEST(test_malformed_empty_pattern_table, "empty_pattern_table")
+MALFORMED_CASE_TEST(test_malformed_empty_macro_table, "empty_macro_table")
+MALFORMED_CASE_TEST(test_malformed_unaligned_pattern_entry, "unaligned_pattern_entry")
+MALFORMED_CASE_TEST(test_malformed_unaligned_macro_entry, "unaligned_macro_entry")
+MALFORMED_CASE_TEST(test_malformed_out_of_range_macro, "out_of_range_macro")
+MALFORMED_CASE_TEST(test_malformed_below_note_data_pattern, "below_note_data_pattern")
+MALFORMED_CASE_TEST(test_malformed_truncated_macro_table, "truncated_macro_table")
+MALFORMED_CASE_TEST(test_malformed_first_pattern_equal_trackstart,
+                    "first_pattern_equal_trackstart")
+MALFORMED_CASE_TEST(test_malformed_first_pattern_before_trackstart,
+                    "first_pattern_before_trackstart")
+MALFORMED_CASE_TEST(test_malformed_end_span, "end_span")
 
 int main(void)
 {
     const struct CMUnitTest tests[] = {
         cmocka_unit_test(test_playback_context_create_destroy),
         cmocka_unit_test(test_loader_normalizes_fixture_tables),
+        cmocka_unit_test(test_loader_resolves_default_header_pointers),
+        cmocka_unit_test(test_loader_scans_independent_tables_with_bounded_capacity),
+        cmocka_unit_test(test_loader_admits_leading_zero_smpl_without_header_rule),
+        cmocka_unit_test(test_loader_treats_smpl_as_opaque_without_macro_range_inference),
+        cmocka_unit_test(test_loader_rejects_one_byte_smpl),
+        cmocka_unit_test(test_loader_rejects_first_pattern_equal_trackstart),
+        cmocka_unit_test(test_loader_rejects_first_pattern_before_trackstart),
+        cmocka_unit_test(test_loader_rejects_end_span),
+        cmocka_unit_test(
+            test_legacy_bridge_owns_voices_01_tables_and_rejects_out_of_range_metadata),
+        cmocka_unit_test(test_legacy_bridge_reset_clears_unused_table_slots),
+        cmocka_unit_test(test_legacy_bridge_rejects_first_pattern_equal_trackstart),
+        cmocka_unit_test(test_legacy_bridge_rejects_first_pattern_before_trackstart),
+        cmocka_unit_test(test_legacy_bridge_rejects_end_span),
         cmocka_unit_test(test_playback_context_loads_separate_fixture_files),
         cmocka_unit_test(test_playback_context_rejects_invalid_or_missing_paths),
         cmocka_unit_test(test_playback_context_rejects_malformed_data_transactionally),
-        cmocka_unit_test(test_playback_context_rejects_malformed_documented_structure),
-        cmocka_unit_test(test_playback_context_rejects_invalid_fixture_semantics),
         cmocka_unit_test(test_playback_context_starts_loaded_subsong_zero),
         cmocka_unit_test(test_playback_context_start_rejects_invalid_state_or_subsong),
         cmocka_unit_test(test_playback_context_tick_and_snapshot_trace),
@@ -792,13 +1008,16 @@ int main(void)
         cmocka_unit_test(test_malformed_truncated_mdat),
         cmocka_unit_test(test_malformed_unaligned_track),
         cmocka_unit_test(test_malformed_out_of_range_pattern),
-        cmocka_unit_test(test_malformed_invalid_active_binding),
-        cmocka_unit_test(test_malformed_invalid_inactive_binding),
-        cmocka_unit_test(test_malformed_invalid_stop_step),
-        cmocka_unit_test(test_malformed_invalid_pattern_contract),
-        cmocka_unit_test(test_malformed_invalid_macro_ordering),
-        cmocka_unit_test(test_malformed_sample_range_overflow),
-        cmocka_unit_test(test_malformed_silent_sample_payload),
+        cmocka_unit_test(test_malformed_empty_pattern_table),
+        cmocka_unit_test(test_malformed_empty_macro_table),
+        cmocka_unit_test(test_malformed_unaligned_pattern_entry),
+        cmocka_unit_test(test_malformed_unaligned_macro_entry),
+        cmocka_unit_test(test_malformed_out_of_range_macro),
+        cmocka_unit_test(test_malformed_below_note_data_pattern),
+        cmocka_unit_test(test_malformed_truncated_macro_table),
+        cmocka_unit_test(test_malformed_first_pattern_equal_trackstart),
+        cmocka_unit_test(test_malformed_first_pattern_before_trackstart),
+        cmocka_unit_test(test_malformed_end_span),
     };
 
     return cmocka_run_group_tests(tests, NULL, NULL);

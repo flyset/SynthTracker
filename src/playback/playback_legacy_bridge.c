@@ -7,6 +7,7 @@
 #include "playback_legacy_bridge.h"
 
 #define BRIDGE_EDIT_WORDS 16385
+#define BRIDGE_TABLE_CAPACITY 128
 
 U32 editbuf[BRIDGE_EDIT_WORDS];
 S8 *smplbuf;
@@ -26,6 +27,8 @@ int oopsUpHack;
 int monkeyHack;
 
 static S8 *bridge_sample;
+static int bridge_patterns[BRIDGE_TABLE_CAPACITY];
+static int bridge_macros[BRIDGE_TABLE_CAPACITY];
 
 extern struct TrackManager trackManager;
 extern struct Audio audioData[8];
@@ -49,20 +52,48 @@ static int copy_state(const unsigned char *mdat, size_t mdat_size,
                       const struct tfmx_loader_metadata *metadata)
 {
     size_t edit_size;
+    size_t edit_words;
     unsigned int index;
 
     if (mdat_size < 0x200 || mdat_size - 0x200 > (BRIDGE_EDIT_WORDS - 1) * 4 ||
         smpl_size > (size_t)INT_MAX || metadata == NULL ||
-        metadata->pattern_count > 128 || metadata->macro_count > 128) {
+        metadata->pattern_count == 0 ||
+        metadata->pattern_count > BRIDGE_TABLE_CAPACITY ||
+        metadata->macro_count == 0 ||
+        metadata->macro_count > BRIDGE_TABLE_CAPACITY) {
         return 0;
     }
     edit_size = mdat_size - 0x200;
+    edit_words = edit_size / sizeof(editbuf[0]);
+    if (metadata->first_pattern <= metadata->trackstart ||
+        metadata->trackstart < 0x200 || metadata->first_pattern < 0x200 ||
+        (metadata->trackstart & 3) != 0 ||
+        (metadata->first_pattern & 3) != 0 ||
+        metadata->first_pattern > mdat_size) {
+        return 0;
+    }
+    for (index = 0; index < metadata->pattern_count; ++index) {
+        if (metadata->patterns[index] < 0 ||
+            (size_t)metadata->patterns[index] >= edit_words) {
+            return 0;
+        }
+    }
+    for (index = 0; index < metadata->macro_count; ++index) {
+        if (metadata->macros[index] < 0 ||
+            (size_t)metadata->macros[index] >= edit_words) {
+            return 0;
+        }
+    }
     memset(&hdr, 0, sizeof(hdr));
     memcpy(&hdr, mdat, sizeof(hdr));
     for (index = 0; index < 32; ++index) {
         hdr.start[index] = read_be16(mdat + 0x100 + index * 2);
         hdr.end[index] = read_be16(mdat + 0x140 + index * 2);
         hdr.tempo[index] = read_be16(mdat + 0x180 + index * 2);
+    }
+    if (hdr.end[0] >=
+        (metadata->first_pattern - metadata->trackstart) / 16U) {
+        return 0;
     }
     hdr.trackstart = (metadata->trackstart - 0x200) / 4;
     hdr.pattstart = (metadata->pattstart - 0x200) / 4;
@@ -76,14 +107,14 @@ static int copy_state(const unsigned char *mdat, size_t mdat_size,
     memset(editbuf, 0, sizeof(editbuf));
     memcpy(editbuf, mdat + 0x200, edit_size);
 
-    patterns = (int *)&editbuf[hdr.pattstart];
-    macros = (int *)&editbuf[hdr.macrostart];
     for (index = 0; index < metadata->pattern_count; ++index) {
-        patterns[index] = metadata->patterns[index];
+        bridge_patterns[index] = metadata->patterns[index];
     }
     for (index = 0; index < metadata->macro_count; ++index) {
-        macros[index] = metadata->macros[index];
+        bridge_macros[index] = metadata->macros[index];
     }
+    patterns = bridge_patterns;
+    macros = bridge_macros;
     for (index = hdr.trackstart;
          index < (metadata->first_pattern - 0x200) / 4; ++index) {
         unsigned int offset = index * 4;
@@ -125,6 +156,8 @@ void tfmx_playback_legacy_bridge_reset(void)
     oopsUpHack = 0;
     monkeyHack = 0;
     memset(editbuf, 0, sizeof(editbuf));
+    memset(bridge_patterns, 0, sizeof(bridge_patterns));
+    memset(bridge_macros, 0, sizeof(bridge_macros));
     memset(&hdr, 0, sizeof(hdr));
 }
 

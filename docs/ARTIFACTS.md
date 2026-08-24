@@ -14,6 +14,14 @@ approved callback-driven rendering model for live audio; the private
 device-driven route is implemented by Track 015 S5, with the negotiated-rate
 preparation handoff and private legacy normalization added by S6.2–S6.4b,
 while the public Audio Output Port and target `Mixer` remain target-only.
+Track 016 separately delivered bounded structural loader admission in the
+private loader/bridge: `first_pattern` strictly after `trackstart`, and a
+subsong-0 inclusive `end` requiring all `end + 1` complete 16-byte tracksteps
+within `[trackstart, first_pattern)` (loader primary admission; the private
+bridge repeats both checks defensively before legacy state binding/start). It
+changes no artifact contract, public API/ABI, timing/interpreter/audio
+behavior for accepted modules, persistence, adapter, or compatibility
+promise.
 
 ## Audio Frame Block
 
@@ -133,7 +141,10 @@ Audio Frame Blocks; the generic adapter conversion remains signed-32/2^31);
 Output Port/API, target `Mixer`, non-macOS adapters, the future GUI, live
 input, rendered-file export, the device-rate-change restart policy, workspace
 release/close, invalid storage-length proof, and general real-module loader
-expansion remain deferred. See
+expansion remain deferred; Track 016 delivered bounded structural load/start
+admission for the selected corpus as a restrictive private
+structural-admission correction while general real-module loader
+compatibility and the loader redesign remain deferred. See
 [`AUDIO_RENDERING_DESIGN.md`](AUDIO_RENDERING_DESIGN.md).
 
 ### Compatibility boundary
@@ -154,8 +165,12 @@ above, which requires a future `Mixer` to emit the same Audio Frame Blocks
 without fixing its internal processing point. Defining the Audio Frame Block
 and retiring the SDL-era audio and `-o` file-output paths does not create a
 SynthTracker v1 compatibility promise; compatibility evidence is bounded
-fixture coverage only, and general real-module loader compatibility remains
-deferred after the recorded XOut2 rejection.
+fixture and structural contract evidence only: the recorded XOut2 rejection
+remains historical Track 015 evidence of the then-fixture-only loader, Track
+016 later delivered bounded structural load/start admission as a restrictive
+private structural-admission correction (with no change to timing/interpreter/
+audio behavior for accepted modules), and general
+real-module loader compatibility remains deferred.
 
 ## Artifact documentation rules
 

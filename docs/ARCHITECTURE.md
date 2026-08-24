@@ -19,12 +19,20 @@ under the C23 baseline as a single executable with no SDL dependency:
   and a private CoreAudio adapter instance, starts the HAL Output Audio Unit
   route, and stops it on completion or interrupt. The removed `-b`, `-8`, `-f`,
   `-o`, `-w`, and `-v` options are rejected as unknown options.
-- `src/playback/tfmx_loader.c` retains the legacy TFMX format detection,
-  loading, module-data logic, and associated global state. Its compatibility
-  evidence is bounded to the four approved self-authored fixture pairs
-  (`step8`, `loop_f1`, `envelope_tempo`, `voices_01`) plus bounded Phase 4
-  evidence; general real-module loader compatibility is deferred after the
-  recorded XOut2 rejection and is not promised.
+- `src/playback/tfmx_loader.c` is the private bounded structural loader
+  (Track 016): it checks TFMX magic and minimum size, subsong-0
+  `start[0]`/inclusive `end[0]` bounds, and table-pointer alignment/in-bounds
+  safety, resolves zero raw
+  `trackstart`/`pattstart`/`macrostart` header pointers to the documented
+  defaults (0x800/0x400/0x600), scans the on-disk pattern and macro pointer
+  tables independently for up to 128 aligned, readable entries each
+  (requiring at least one valid entry per table), normalizes accepted offsets
+  into its metadata arrays, and treats raw SMPL as opaque bytes with a
+  two-byte minimum (leading zeros admitted; no macro-derived sample-range
+  inference). Its evidence is automated self-authored structural contracts
+  plus bounded supplemental manual corpus evidence; general real-module
+  loader compatibility remains deferred after the historical Track 015 XOut2
+  rejection and is not promised.
 - `src/player.c` owns the interpreter, including trackstep → pattern → macro
   sequencing, macro execution, and effects.
 - `src/playback/playback_legacy_renderer.c` is the private exact-N legacy
@@ -60,8 +68,15 @@ The runtime state is global and shared across these files. Module data is
 mutated in place on load: network-order values are converted in `editbuf`, and
 file pointers become array indices. Per-song behavior hacks remain global.
 
-The private copied legacy bridge resets bridge-owned runtime state for a fresh
-start but remains single-global and non-reentrant. The private `src/playback`
+The private copied legacy bridge (`src/playback/playback_legacy_bridge.c`)
+owns capacity-128 normalized pattern/macro arrays (Track 016): counts are
+constrained to 1..128, every loader metadata index is validated non-negative
+and within the complete copied MDAT word range, and the validated entries are
+copied before the interpreter's `patterns`/`macros` globals bind to the
+bridge-owned arrays — never aliasing the copied on-disk table region inside
+`editbuf`. Bounded trackstep conversion over the resolved
+`[trackstart, first_pattern)` range is preserved, and reset clears the
+arrays. It remains single-global and non-reentrant. The private `src/playback`
 seam provides a fixed-eight voice snapshot and is SDL-free, single-global,
 non-reentrant, and not a public API or MCP surface.
 
@@ -69,6 +84,55 @@ The SDL 1.2-era audio API surface is retired: the legacy SDL live-audio path,
 SDL linkage, SDL test scaffolding, and the `-o` file-output path are removed.
 SDL 1.1.7 is historical legacy context, not an asserted current build
 dependency; SDL remains only a future GUI decision.
+
+### Bounded structural loader admission (Track 016)
+
+Track 016 replaced the finite-fixture content recognizer with bounded
+structural load/start admission in the private loader/bridge. This is a
+private, non-promissory Phase 4 scaffold — not a general TFMX format
+validator, a loader redesign, or a SynthTracker v1 compatibility promise.
+
+- `src/playback/tfmx_loader.c` admits a candidate by structural rules only:
+  TFMX magic and minimum size, subsong-0 `start[0]`/inclusive
+  `end[0]` bounds, table-pointer alignment and in-bounds checks, and
+  candidate-metadata safety. Zero raw
+  `trackstart`/`pattstart`/`macrostart` header pointers resolve to the
+  documented defaults 0x800/0x400/0x600 (`docs/TFMXLegacy/FORMAT.md:65-74`).
+  The on-disk pattern and macro pointer tables are scanned independently for
+  up to 128 readable, aligned raw targets each — stopping before an
+  unreadable cell and on zero, below-0x200, unaligned, or out-of-bounds
+  entries — with at least one valid entry per table; accepted offsets are
+  normalized into the existing metadata arrays, and `first_pattern` derives
+  from the first normalized pattern. Primary load admission additionally
+  requires `first_pattern` to be strictly after `trackstart`, and a subsong-0
+  inclusive `end` that fits all `end + 1` complete 16-byte tracksteps within
+  `[trackstart, first_pattern)`. The exact trackstep/pattern/macro
+  content comparisons and first-macro sample-range inference are removed.
+- Raw SMPL is opaque byte data with no header: a two-byte minimum is
+  retained, leading zeros are admitted, and no loader sample-range inference
+  is performed from macro content.
+- `src/playback/playback_legacy_bridge.c` owns the private capacity-128
+  normalized pattern/macro arrays described above (validation, copy-before-
+  bind, reset, and bounded trackstep conversion). Before legacy state
+  binding/start, the bridge defensively repeats both load/start checks —
+  `first_pattern` strictly after `trackstart`, and the subsong-0 inclusive
+  `end` requiring all `end + 1` complete 16-byte tracksteps within
+  `[trackstart, first_pattern)`.
+- This is a restrictive private structural-admission correction only: it
+  changes no public API/ABI, artifact contract, timing/interpreter/audio
+  behavior for accepted modules, persistence, adapter, or compatibility
+  promise.
+- Evidence is automated self-authored structural contract tests
+  (`tests/playback/`, deterministic and independent of the external corpus)
+  plus bounded supplemental manual corpus evidence only: the four selected
+  directories (`Turrican1`, `Turrican2`, `R-type`, `Apprentice`) with 21
+  paired modules across 11 structural families and 14 default-pointer
+  layouts, and the two user-confirmed smoke cases (`Turrican2-LVL1`,
+  `Turrican1-LVL1`). No format-wide compatibility, exact audio, or resolved
+  timing/effects/loop claim is made. The recorded XOut2 rejection remains a
+  historical Track 015 record; Track 016 later delivered bounded admission,
+  and general real-module loader compatibility and the loader redesign remain
+  deferred.
 
 ### Private audio-output live route (Phase 4)
 
@@ -194,8 +258,11 @@ Output Port, public C API, target `Mixer`, non-macOS adapters, the future GUI,
 live input, rendered-file export, the device-rate-change restart policy,
 workspace release/close, invalid storage-length proof, and general real-module
 loader expansion remain deferred. General real-module loader compatibility in
-particular remains deferred after the recorded XOut2 rejection — bounded
-fixture evidence only, no format-wide promise — and the design does not promise
+particular remains deferred: the recorded XOut2 rejection is historical Track
+015 evidence, and Track 016 later delivered bounded structural load/start
+admission (self-authored structural contracts plus bounded supplemental manual
+corpus evidence, no format-wide promise), while the loader redesign and
+format-wide compatibility stay deferred — the design does not promise
 current behavior or compatibility. See
 [`AUDIO_RENDERING_DESIGN.md`](AUDIO_RENDERING_DESIGN.md),
 [ADR-009](adr/ADR-009-callback-driven-audio-rendering.md), and
@@ -208,6 +275,9 @@ current TFMX behavior where practical is a temporary development scaffold only.
 Every Phase 4 Track must assess compatibility impact on relevant TFMX modules,
 trackstep, pattern, macro, timing, interpreter, and audio semantics, and retain
 appropriate evidence. This is not a SynthTracker v1 compatibility promise.
+Track 016 assessed its impact as a bounded private module-admission change
+with no intended interpreter/timing/audio semantic change beyond admissibility
+and reachability; observed playback differences are recorded, not resolved.
 
 ## Current validation boundary
 
@@ -225,7 +295,11 @@ Validation follows ownership rather than source-text placement: component
 tests exercise observable component contracts, application-level tests exercise
 observable workflows and composition, and build/link/executable integration
 checks cover `Main` and executable composition. Compatibility fixtures and
-direct checks provide bounded supplemental evidence. `main.c` remains minimal
+direct checks provide bounded supplemental evidence. Track 016's loader and
+bridge contracts are covered by deterministic self-authored structural
+contract tests in `tests/playback/`; the external selected corpus is
+supplemental manual evidence only and is not a repository automated acceptance
+criterion. `main.c` remains minimal
 and is not validated by source-text existence or placement tests. The private
 `src/playback/` subtree is temporary compatibility evidence, not target
 application architecture. See [`TESTING.md`](TESTING.md).
