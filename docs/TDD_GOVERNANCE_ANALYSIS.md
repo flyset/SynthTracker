@@ -298,3 +298,16 @@ The two primary control points are:
 
 - `docs/TESTING.md` — what testing evidence is required.
 - `docs/AGENT_WORKFLOW.md` — when and how that evidence must be produced.
+
+## Proposed structure
+
+Does this make sense? As a future structure, the project could be organized as follows:
+
+SynthTracker/
+├── src/
+│   ├── component_a/ <-- PURE C (Chicago Style: Waveforms, mixing, logic)
+│   └── component_b/ <-- PURE C (Chicago Style: Waveforms, mixing, logic)
+└── tests/
+    ├── integration/  <-- Integration tests executing full audio graph paths
+    ├── fixtures/     <-- Shared fixtures for audio, compatibility, and memory
+    └── units/        <-- Fast CMocka tests checking structural math and leaks
