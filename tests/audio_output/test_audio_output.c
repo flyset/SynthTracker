@@ -1051,6 +1051,144 @@ static void coreaudio_bound_instance_hands_off_exact_requests_without_conversion
     assert_int_equal(failed_sink.delivery_call_count, 0);
 }
 
+typedef struct {
+    size_t render_call_count;
+    size_t delivery_call_count;
+} unbounded_request_sink;
+
+enum {
+    /* The bounded-trace test below drives distinct frame counts whose largest
+     * value is 11, so this buffer always covers a full rendered block. */
+    UNBOUNDED_REQUEST_MAX_FRAME_COUNT = 12,
+};
+
+static audio_frame_block unbounded_request_renderer(
+    void *context,
+    size_t requested_frame_count)
+{
+    unbounded_request_sink *sink = context;
+    static audio_frame frames[UNBOUNDED_REQUEST_MAX_FRAME_COUNT];
+
+    sink->render_call_count++;
+    return (audio_frame_block){
+        .frame_count = requested_frame_count,
+        .frames = frames,
+    };
+}
+
+static audio_output_submit_result unbounded_request_delivery(
+    void *context,
+    const audio_frame_block *block)
+{
+    unbounded_request_sink *sink = context;
+
+    assert_non_null(block);
+    sink->delivery_call_count++;
+    return AUDIO_OUTPUT_SUBMIT_ACCEPTED;
+}
+
+static void coreaudio_request_trace_is_bounded_and_truncation_is_observable(
+    void **state)
+{
+    (void)state;
+
+    const audio_output_coreaudio_format format = {
+        .sample_rate_hz = 44100,
+        .channel_count = 2,
+        .sample_format = AUDIO_OUTPUT_COREAUDIO_SAMPLE_FORMAT_FLOAT32,
+        .layout = AUDIO_OUTPUT_COREAUDIO_LAYOUT_INTERLEAVED,
+    };
+    enum {
+        PREFIX_REQUEST_COUNT = FAKE_COREAUDIO_FACADE_REQUEST_TRACE_CAPACITY,
+        OVERFLOW_REQUEST_COUNT = 3,
+    };
+    static const size_t request_prefix[PREFIX_REQUEST_COUNT] = {
+        5, 2, 8, 1, 4, 7, 3, 6,
+    };
+    static const size_t request_overflow[OVERFLOW_REQUEST_COUNT] = {
+        9, 10, 11,
+    };
+
+    unbounded_request_sink sink = {0};
+    fake_coreaudio_facade fake;
+    fake_coreaudio_facade_init(&fake, AUDIO_OUTPUT_COREAUDIO_FACADE_OK,
+                               AUDIO_OUTPUT_COREAUDIO_FACADE_OK,
+                               AUDIO_OUTPUT_COREAUDIO_FACADE_OK);
+    audio_output_coreaudio_adapter_instance instance = {
+        .facade = &fake.facade,
+        .route = {
+            .renderer = unbounded_request_renderer,
+            .delivery = unbounded_request_delivery,
+            .context = &sink,
+        },
+    };
+
+    assert_int_equal(
+        audio_output_coreaudio_adapter_start_instance(&instance, &format),
+        AUDIO_OUTPUT_COREAUDIO_START_STARTED);
+
+    /* 1. Exactly capacity requests with distinct frame counts: the total and
+     * retained counts both equal capacity, truncation is false, and the
+     * retained trace matches the original ordered prefix. */
+    for (size_t index = 0; index < PREFIX_REQUEST_COUNT; index++) {
+        assert_int_equal(
+            fake_coreaudio_facade_request(&fake, request_prefix[index]),
+            AUDIO_OUTPUT_SUBMIT_ACCEPTED);
+    }
+    assert_int_equal(fake.render_request_count, PREFIX_REQUEST_COUNT);
+    assert_int_equal(fake.request_trace_count, PREFIX_REQUEST_COUNT);
+    assert_false(fake.request_trace_truncated);
+    for (size_t index = 0; index < PREFIX_REQUEST_COUNT; index++) {
+        assert_int_equal(fake.request_trace[index], request_prefix[index]);
+    }
+    assert_int_equal(sink.render_call_count, PREFIX_REQUEST_COUNT);
+    assert_int_equal(sink.delivery_call_count, PREFIX_REQUEST_COUNT);
+
+    /* 2. One request beyond capacity: the total increments, the retained count
+     * stays at capacity, truncation becomes true, and the retained prefix is
+     * unchanged. */
+    assert_int_equal(
+        fake_coreaudio_facade_request(&fake, request_overflow[0]),
+        AUDIO_OUTPUT_SUBMIT_ACCEPTED);
+    assert_int_equal(fake.render_request_count, PREFIX_REQUEST_COUNT + 1);
+    assert_int_equal(fake.request_trace_count, PREFIX_REQUEST_COUNT);
+    assert_true(fake.request_trace_truncated);
+    for (size_t index = 0; index < PREFIX_REQUEST_COUNT; index++) {
+        assert_int_equal(fake.request_trace[index], request_prefix[index]);
+    }
+    assert_int_equal(sink.render_call_count, PREFIX_REQUEST_COUNT + 1);
+    assert_int_equal(sink.delivery_call_count, PREFIX_REQUEST_COUNT + 1);
+
+    /* 3. Additional distinct requests beyond capacity: the total keeps
+     * incrementing, the retained prefix and order stay unchanged, truncation
+     * stays true, and no request is silently skipped. */
+    for (size_t index = 1; index < OVERFLOW_REQUEST_COUNT; index++) {
+        assert_int_equal(
+            fake_coreaudio_facade_request(&fake, request_overflow[index]),
+            AUDIO_OUTPUT_SUBMIT_ACCEPTED);
+    }
+    assert_int_equal(fake.render_request_count,
+                     PREFIX_REQUEST_COUNT + OVERFLOW_REQUEST_COUNT);
+    assert_int_equal(fake.request_trace_count, PREFIX_REQUEST_COUNT);
+    assert_true(fake.request_trace_truncated);
+    for (size_t index = 0; index < PREFIX_REQUEST_COUNT; index++) {
+        assert_int_equal(fake.request_trace[index], request_prefix[index]);
+    }
+    assert_int_equal(sink.render_call_count,
+                     PREFIX_REQUEST_COUNT + OVERFLOW_REQUEST_COUNT);
+    assert_int_equal(sink.delivery_call_count,
+                     PREFIX_REQUEST_COUNT + OVERFLOW_REQUEST_COUNT);
+
+    /* 4. Re-initializing the facade resets the total count, retained count,
+     * and truncation flag. */
+    fake_coreaudio_facade_init(&fake, AUDIO_OUTPUT_COREAUDIO_FACADE_OK,
+                               AUDIO_OUTPUT_COREAUDIO_FACADE_OK,
+                               AUDIO_OUTPUT_COREAUDIO_FACADE_OK);
+    assert_int_equal(fake.render_request_count, 0);
+    assert_int_equal(fake.request_trace_count, 0);
+    assert_false(fake.request_trace_truncated);
+}
+
 static void coreaudio_callback_routes_exact_n_into_preallocated_float32_output(
     void **state)
 {
@@ -2934,6 +3072,8 @@ int main(void)
             coordinator_accepts_zero_and_variable_exact_requests_and_rejects),
         cmocka_unit_test(
             coreaudio_bound_instance_hands_off_exact_requests_without_conversion),
+        cmocka_unit_test(
+            coreaudio_request_trace_is_bounded_and_truncation_is_observable),
         cmocka_unit_test(
             coreaudio_callback_routes_exact_n_into_preallocated_float32_output),
         cmocka_unit_test(

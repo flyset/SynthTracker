@@ -770,7 +770,7 @@ void GetTrackStep()
 			goto loop;
 		case 2: /* speed */ 
 			trackManager.SpeedCnt=patternBlockData.Prescale=l[2];
-			if (!(l[3]&0xF200)&&(x=(l[3]&0x1FF)>0xF))
+			if (!(l[3]&0xF200)&&((x=(l[3]&0x1FF))>0xF))
 				trackManager.CIASave=eClocks=0x1B51F8/x;
 			patternBlockData.CurrPos++;
 			goto loop;

@@ -148,6 +148,7 @@ static void test_legacy_bridge_owns_voices_01_tables_and_rejects_out_of_range_me
     size_t copied_words;
     size_t macro_table_slot;
     unsigned int tick;
+    unsigned int eclocks;
     int found_jointly_active = 0;
 
     (void)state;
@@ -167,7 +168,7 @@ static void test_legacy_bridge_owns_voices_01_tables_and_rejects_out_of_range_me
     /* Mutate the copied on-disk macro table after bridge start. */
     editbuf[macro_table_slot] = (unsigned int)metadata.macros[1];
     for (tick = 0; tick < 8; ++tick) {
-        assert_int_equal(tfmx_playback_legacy_bridge_tick(snapshots), 1);
+        assert_int_equal(tfmx_playback_legacy_bridge_tick(snapshots, &eclocks), 1);
         if (snapshots[0].active && snapshots[1].active) {
             found_jointly_active = 1;
             assert_int_equal(snapshots[0].volume, 18);
@@ -200,6 +201,7 @@ static int reduced_voices_01_tables_activate_voice_one(
     const struct tfmx_loader_metadata *metadata)
 {
     tfmx_voice_snapshot snapshots[TFMX_PLAYBACK_SNAPSHOT_VOICE_COUNT];
+    unsigned int eclocks = 0;
     int found_voice_zero_active = 0;
     int found_voice_one_active = 0;
 
@@ -208,7 +210,7 @@ static int reduced_voices_01_tables_activate_voice_one(
                          candidate->smpl_size, metadata, 0),
                      1);
     for (unsigned int tick = 0; tick < 8; ++tick) {
-        assert_int_equal(tfmx_playback_legacy_bridge_tick(snapshots), 1);
+        assert_int_equal(tfmx_playback_legacy_bridge_tick(snapshots, &eclocks), 1);
         if (snapshots[0].active) {
             found_voice_zero_active = 1;
         }
@@ -650,6 +652,127 @@ static void test_playback_context_renders_silent_first_two_ticks(void **state)
         for (size_t index = 0; index < bytes; ++index) {
             assert_int_equal(output[index], 0);
         }
+    }
+    tfmx_playback_context_destroy(context);
+}
+
+static void test_playback_context_uses_timeshare_eclocks_for_same_tick(void **state)
+{
+    /* Default timing (14318 eClocks) renders 881 frames; the same-tick
+     * post-interpreter timeshare scales eClocks to 28636, which renders 1763
+     * frames plus the carried remainder for 1764 total; the following tick
+     * keeps the dynamic 28636 eClocks and renders 1764 frames with the next
+     * carried remainder. The fixture has no stop step: the engine stays
+     * active after each rendered tick, including the third. */
+    static const size_t expected_frames[] = { 881, 1764, 1764 };
+    audio_frame output[1764];
+    size_t frames = 0;
+    tfmx_playback_context *context;
+
+    (void)state;
+    context = tfmx_playback_context_create();
+    assert_non_null(context);
+    assert_int_equal(
+        tfmx_playback_context_load(
+            context, TFMX_SOURCE_ROOT "/tests/fixtures/mdat.timeshare",
+            TFMX_SOURCE_ROOT "/tests/fixtures/smpl.timeshare"),
+        TFMX_LOAD_SUCCESS);
+    assert_int_equal(tfmx_playback_context_start(context, 0), TFMX_START_SUCCESS);
+    for (size_t tick = 0;
+         tick < sizeof(expected_frames) / sizeof(expected_frames[0]); ++tick) {
+        assert_int_equal(tfmx_playback_context_tick_at_rate(context, 44100),
+                         TFMX_TICK_SUCCESS);
+        assert_int_equal(
+            tfmx_playback_context_render_frames(
+                context, output, sizeof(output) / sizeof(output[0]), &frames),
+            TFMX_RENDER_SUCCESS);
+        assert_int_equal(frames, expected_frames[tick]);
+        assert_false(tfmx_playback_context_is_complete(context));
+    }
+    tfmx_playback_context_destroy(context);
+}
+
+static void test_playback_context_applies_speed_control_divisor_on_same_tick(
+    void **state)
+{
+    /* Default timing (14318 eClocks) renders 881 frames on the first tick. The
+     * second bridge tick executes the self-authored speed-control step, whose
+     * qualifying value (high mask passes, low9 divisor 100 in 16..511) makes
+     * the corrected expression set eClocks = 0x1B51F8 / 100 = 17904; that same
+     * tick renders 1103 frames (1102 plus the tick-1 carried remainder). The
+     * inert hold trackstep keeps the engine active and the corrected eClocks
+     * retained, so each following tick renders 1103 frames until the carried
+     * remainder drops below the mixer clock threshold on tick 10, which
+     * renders 1102 frames and proves remainder carry. The output capacity
+     * (1103 frames) renders the corrected path but is far below the buggy
+     * divisor-1 tick (~110k frames), so the defect fails loudly rather than
+     * being masked by an oversized buffer. */
+    static const size_t expected_frames[] = {
+        881, 1103, 1103, 1103, 1103, 1103, 1103, 1103, 1103, 1102
+    };
+    audio_frame output[1103];
+    size_t frames = 0;
+    tfmx_playback_context *context;
+
+    (void)state;
+    context = tfmx_playback_context_create();
+    assert_non_null(context);
+    assert_int_equal(
+        tfmx_playback_context_load(
+            context, TFMX_SOURCE_ROOT "/tests/fixtures/mdat.speed",
+            TFMX_SOURCE_ROOT "/tests/fixtures/smpl.speed"),
+        TFMX_LOAD_SUCCESS);
+    assert_int_equal(tfmx_playback_context_start(context, 0), TFMX_START_SUCCESS);
+    for (size_t tick = 0;
+         tick < sizeof(expected_frames) / sizeof(expected_frames[0]); ++tick) {
+        assert_int_equal(tfmx_playback_context_tick_at_rate(context, 44100),
+                         TFMX_TICK_SUCCESS);
+        assert_int_equal(
+            tfmx_playback_context_render_frames(
+                context, output, sizeof(output) / sizeof(output[0]), &frames),
+            TFMX_RENDER_SUCCESS);
+        assert_int_equal(frames, expected_frames[tick]);
+        assert_false(tfmx_playback_context_is_complete(context));
+    }
+    tfmx_playback_context_destroy(context);
+}
+
+static void test_playback_context_applies_header_tempo_on_start(void **state)
+{
+    /* The self-authored header stores tempo[0] = 100 (>= 0x10), so StartSong
+     * sets eClocks = 0x1B51F8 / 100 = 17904 before the first bridge tick. The
+     * first tick therefore already renders 1102 frames (17904 * 22050 /
+     * 357955 = 1102 with remainder 316790, below the mixer clock threshold),
+     * and the assertion distinguishes that header-derived timing from the
+     * fixed-default timing (14318 eClocks), which would render 881 frames.
+     * The next tick carries that remainder and renders 1103 frames, and the
+     * third tick renders 1103 frames as well; the 1103-frame output capacity
+     * supports each expected full-tick render. The inert hold trackstep keeps
+     * the engine active (not complete) after each of the three ticks. */
+    static const size_t expected_frames[] = { 1102, 1103, 1103 };
+    audio_frame output[1103];
+    size_t frames = 0;
+    tfmx_playback_context *context;
+
+    (void)state;
+    context = tfmx_playback_context_create();
+    assert_non_null(context);
+    assert_int_equal(
+        tfmx_playback_context_load(
+            context, TFMX_SOURCE_ROOT "/tests/fixtures/mdat.header_tempo",
+            TFMX_SOURCE_ROOT "/tests/fixtures/smpl.header_tempo"),
+        TFMX_LOAD_SUCCESS);
+    assert_int_equal(tfmx_playback_context_start(context, 0), TFMX_START_SUCCESS);
+    for (size_t tick = 0;
+         tick < sizeof(expected_frames) / sizeof(expected_frames[0]); ++tick) {
+        assert_int_equal(tfmx_playback_context_tick_at_rate(context, 44100),
+                         TFMX_TICK_SUCCESS);
+        assert_int_equal(
+            tfmx_playback_context_render_frames(
+                context, output, sizeof(output) / sizeof(output[0]), &frames),
+            TFMX_RENDER_SUCCESS);
+        assert_int_equal(frames, expected_frames[tick]);
+        assert_false(tfmx_playback_context_is_complete(context));
     }
     tfmx_playback_context_destroy(context);
 }
@@ -1171,6 +1294,9 @@ int main(void)
         cmocka_unit_test(test_playback_context_snapshot_all_caches_same_tick_values),
         cmocka_unit_test(test_playback_context_snapshot_all_resets_on_start_and_reload),
         cmocka_unit_test(test_playback_context_renders_silent_first_two_ticks),
+        cmocka_unit_test(test_playback_context_uses_timeshare_eclocks_for_same_tick),
+        cmocka_unit_test(test_playback_context_applies_speed_control_divisor_on_same_tick),
+        cmocka_unit_test(test_playback_context_applies_header_tempo_on_start),
         cmocka_unit_test(test_playback_context_renders_completed_tick_as_canonical_pcm),
         cmocka_unit_test(test_playback_context_render_rejects_invalid_arguments_and_capacity),
         cmocka_unit_test(test_playback_context_reports_engine_completion),

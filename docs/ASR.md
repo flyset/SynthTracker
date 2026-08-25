@@ -69,6 +69,18 @@ selected slot's decoded inclusive range and a captured absolute `-P` position
 within it before legacy start, and no public API/ABI, artifact contract,
 persistence, adapter, or compatibility-promise change results while
 interpreter/timing/audio semantics change only in selected-start reachability.
+Track 018 delivered a bounded private timing correction: the bridge captures
+post-interpreter `eClocks` after `tfmxIrqIn()` with the tick snapshots, and the
+context forwards it to the existing mixer timing argument for the same rendered
+tick. A qualifying speed control now uses `eClocks = 0x1B51F8 / low9` when the
+high mask passes and low9 is 16..511, correcting the former Boolean-divisor
+behavior. Mixer exact-N/remainder arithmetic, callback-path restrictions, and
+device-request zero-frame behavior are unchanged. Primary evidence is
+   self-authored automated tests and fixtures. The user confirmed that the
+   previously missing Turrican2-TITLE tempo transition is now audible. This
+   supplemental user judgment follows automated evidence, does not replace tests
+   or establish exact-audio or broad compatibility claims, and resolves only
+   that observed transition.
 
 ### ASR-003 — UI-agnostic playback core
 
@@ -274,8 +286,18 @@ interpreter/timing/audio semantics change only in selected-start reachability.
   and workspace-mode startup-rejection evidence, the real legacy exact-N
   renderer, the lock-free admission gate, the HAL workspace-copy route, the
   real HAL Output Audio Unit lifecycle/callback with control-side quiescence,
-  and the application cutover with SDL/`-o`/CLI deletion, while the public
-  Audio Output Port, real device/framework stop/close details beyond the
-  implemented control-side quiescence, device-rate-change restart, and the
-  remaining deferred mechanics stay deferred.
+   and the application cutover with SDL/`-o`/CLI deletion, while the public
+   Audio Output Port, real device/framework stop/close details beyond the
+   implemented control-side quiescence, device-rate-change restart, and the
+   remaining deferred mechanics stay deferred.
+   Track 018 additionally provides self-authored component and composition
+   evidence that post-interpreter `eClocks` is captured after `tfmxIrqIn()` and
+   used by the existing mixer timing argument for the same rendered tick across
+   header-tempo, qualifying speed-control, and timeshare sources, with exact-N
+   and carried-remainder behavior retained. The qualifying speed-control
+   correction uses `0x1B51F8 / low9` only when the high mask passes and low9 is
+   16..511. The user confirmed that the previously missing Turrican2-TITLE
+   tempo transition is now audible; this is supplemental user judgment following
+   automated evidence, does not replace tests or establish exact-audio or broad
+   compatibility claims, and resolves only that observed transition.
 - **Related ADRs:** [ADR-010](adr/ADR-010-native-adapter-ownership-and-private-demand-coordination.md), [ADR-009](adr/ADR-009-callback-driven-audio-rendering.md), [ADR-008](adr/ADR-008-audio-frame-block-mixed-value-boundary.md), [ADR-005](adr/ADR-005-target-daw-component-foundation.md).

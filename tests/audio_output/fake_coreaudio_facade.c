@@ -213,8 +213,13 @@ static audio_output_submit_result fake_coreaudio_facade_request_internal(
         return AUDIO_OUTPUT_SUBMIT_REJECTED;
     }
 
-    fake->request_trace[fake->request_trace_count] = requested_frame_count;
-    fake->request_trace_count++;
+    if (fake->request_trace_count <
+        FAKE_COREAUDIO_FACADE_REQUEST_TRACE_CAPACITY) {
+        fake->request_trace[fake->request_trace_count] = requested_frame_count;
+        fake->request_trace_count++;
+    } else {
+        fake->request_trace_truncated = true;
+    }
     fake->render_request_count++;
     fake->callback_in_flight = true;
     const audio_output_submit_result result = fake->request(

@@ -33,7 +33,18 @@ decision-defined, explicitly marked, and are not claims about implementation.
 - **Playback context** — a playback-session object. Its current private
   bridge-backed execution is single-global and non-reentrant. TFMX supports at
   most one simultaneously active playback context; multiple channels or voices
-  within one context are not independent playback contexts.
+   within one context are not independent playback contexts.
+- **post-interpreter `eClocks`** — the legacy interpreter's current tick-clock
+  value captured by the private bridge after `tfmxIrqIn()` and alongside that
+  tick's voice snapshots. The private playback context passes it to the
+  existing mixer timing argument for that same rendered tick; mixer exact-N and
+  remainder arithmetic are unchanged. This is a private Phase 4 handoff, not a
+  public timing contract or compatibility promise.
+- **`eClocks`** — the legacy interpreter tick-clock state. Local timing sources
+  include song-start tempo, speed control, and timeshare control in
+  `src/player.c`; a qualifying speed control (high mask passes; low9 is
+  16..511) sets `eClocks = 0x1B51F8 / low9`. See **post-interpreter
+  `eClocks`** for its implemented private same-tick use.
 - **Effects** — per-tick channel modifiers applied after macro stepping
   (`DoEffects`, `src/player.c:504`): AddBegin sample-offset slide, vibrato,
   portamento, envelope; plus a global master-volume fade.

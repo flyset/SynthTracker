@@ -168,6 +168,7 @@ device requests N frames (one callback)
         mix from current playback state, up to that remaining count
     else:
         advance TFMX exactly once (one tick)
+        capture post-interpreter `eClocks` with that tick's snapshots
         derive the next tick's frame count (existing tick timing model,
         at the active device rate; see Sample-rate policy)
         continue mixing from the current playback state
@@ -184,10 +185,12 @@ exact-N coordinator (see "Private demand coordination").
   between device requests; a request that ends in the middle of a tick leaves
   the remainder for the next request.
 - When that remaining count is exhausted, the renderer **advances TFMX exactly
-  once** — one tick of the legacy player — and derives that tick's frame count
-  from the existing tick timing model: the per-tick frame count derived from
-  the tick clock and output rate (the active device rate for the run), with
-  remainder accumulation, as in the current transitional engine.
+  once** — one tick of the legacy player. The private bridge captures
+  post-interpreter `eClocks` with that tick's snapshots after `tfmxIrqIn()`,
+  and the private context passes it to the existing mixer timing argument for
+  that same rendered tick. The mixer derives the frame count from that tick
+  clock and output rate (the active device rate for the run), retaining its
+  exact-N remainder accumulation.
 - The renderer **continues mixing until it fills the exact device-requested
   frame count**. A single request may span multiple TFMX ticks, and a single
   TFMX tick may span multiple requests.
@@ -197,6 +200,12 @@ exact-N coordinator (see "Private demand coordination").
 - Preserving the existing tick timing model is **bounded Phase 4 compatibility
   evidence** for the intended impact on legacy timing and audio semantics; it is
   not a SynthTracker v1 compatibility promise.
+
+Implemented Track 018 correction: for a qualifying local speed control (high
+mask passes; low9 is 16..511), the interpreter sets `eClocks = 0x1B51F8 /
+low9`; the prior Boolean-divisor defect is corrected. The private handoff,
+mixer exact-N/remainder arithmetic, and callback-path restrictions are not a
+public contract or a broad compatibility claim.
 
 ## Sample-rate policy
 
@@ -419,11 +428,15 @@ delivered by Track 015 S5 and S6.2–S6.4b:
   complement automated coverage, never replace it, and are not a compatibility
   promise.
 - **Bounded compatibility evidence for the tick timing model** records that the
-  callback route preserves the existing per-tick frame-count derivation and the
-  tick-advance cadence (see "Approved module-rendering direction") at the
-  active device rate (see "Sample-rate policy") as temporary Phase 4
-  compatibility evidence for the intended impact on legacy timing and audio
-  semantics.
+  callback route uses post-interpreter `eClocks` for the same rendered tick's
+  existing per-tick frame-count derivation and tick-advance cadence (see
+  "Approved module-rendering direction") at the active device rate (see
+   "Sample-rate policy"). Self-authored tests and fixtures are the primary
+   temporary Phase 4 evidence. The user confirmed that the previously missing
+   Turrican2-TITLE tempo transition is now audible. This supplemental user
+   judgment follows automated evidence, does not replace tests or establish
+   exact-audio or broad compatibility claims, and resolves only that observed
+   transition.
 
 ## Open deferrals
 

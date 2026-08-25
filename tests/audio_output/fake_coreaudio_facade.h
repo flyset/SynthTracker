@@ -53,8 +53,18 @@ typedef struct {
     size_t control_dispose_call_count;
     audio_output_coreaudio_request request;
     void *request_context;
+    /* request_trace retains only the first
+     * FAKE_COREAUDIO_FACADE_REQUEST_TRACE_CAPACITY request frame counts, so
+     * the fake facade may service more callbacks than the fixed trace buffer
+     * can hold without ever writing past it. request_trace_count is the number
+     * of safely retained entries and never exceeds the trace capacity;
+     * request_trace_truncated records that additional callbacks were serviced
+     * beyond the retained prefix. render_request_count (below) remains the
+     * separate total callback/request count used by lifecycle/completion
+     * assertions. */
     size_t request_trace[FAKE_COREAUDIO_FACADE_REQUEST_TRACE_CAPACITY];
     size_t request_trace_count;
+    bool request_trace_truncated;
     bool active;
     bool quiescent;
     bool disposed;

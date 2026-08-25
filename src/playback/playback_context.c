@@ -113,6 +113,7 @@ tfmx_tick_status tfmx_playback_context_tick_at_rate(
     tfmx_playback_context *context, unsigned int output_rate_hz)
 {
     tfmx_voice_snapshot_set tick_snapshot;
+    unsigned int eclocks;
 
     if (context == NULL || output_rate_hz == 0) {
         return TFMX_TICK_INVALID_ARGUMENT;
@@ -121,12 +122,12 @@ tfmx_tick_status tfmx_playback_context_tick_at_rate(
         return TFMX_TICK_NOT_STARTED;
     }
     tfmx_playback_legacy_bridge_set_output_rate(output_rate_hz);
-    if (!tfmx_playback_legacy_bridge_tick(tick_snapshot.voice)) {
+    if (!tfmx_playback_legacy_bridge_tick(tick_snapshot.voice, &eclocks)) {
         return TFMX_TICK_NOT_STARTED;
     }
     context->snapshot_cache = tick_snapshot;
     context->voice_zero = context->snapshot_cache.voice[0];
-    tfmx_playback_legacy_mixer_begin_tick(&context->mixer, 14318,
+    tfmx_playback_legacy_mixer_begin_tick(&context->mixer, eclocks,
                                           output_rate_hz);
     context->render_ready = 1;
     return TFMX_TICK_SUCCESS;

@@ -83,8 +83,22 @@ maintainability, and user experience.
   preserved absolute position before legacy start. This is a bounded private
   change with no public API/ABI, target architecture, reentrancy,
   callback-path, or broad compatibility claim. Evidence is automated
-  self-authored selected-subsong fixtures and focused tests: playback-context
-  50/50, application 5/5, and full CTest 8/8.
+   self-authored selected-subsong fixtures and focused tests: playback-context
+   50/50, application 5/5, and full CTest 8/8.
+- **Legacy tick timing (Track 018)**: the private bridge now captures
+  **post-interpreter `eClocks`** with each tick's snapshots after `tfmxIrqIn()`,
+  and the private context forwards that value to the existing mixer timing
+  argument for the same rendered tick. This corrects the qualifying local
+  speed-control divisor: when the high mask passes and low9 is 16..511,
+  `eClocks = 0x1B51F8 / low9`; the former Boolean-divisor defect is corrected.
+  Mixer exact-N and remainder arithmetic are unchanged. This is bounded Phase 4
+  private behavior, supported primarily by self-authored tests and fixtures;
+  it creates no public API, target-architecture, format-wide compatibility, or
+   exact-audio claim. The user confirmed that the previously missing
+   Turrican2-TITLE tempo transition is now audible. This supplemental user
+   judgment follows automated evidence, does not replace tests or establish
+   exact-audio or broad compatibility claims, and resolves only that observed
+   transition.
 - **SDL audio and `-o` removed**: The legacy SDL live-audio path, the `-o`
   file-output path, and the `-b`, `-8`, `-f`, `-o`, `-w`, and `-v` options are
   removed; each removed option is rejected as an unknown option, and `-o` has
@@ -162,9 +176,13 @@ maintainability, and user experience.
   fixture-content recognition with bounded structural admission, and general
   real-module loader compatibility remains deferred. This is not an assertion
   that the module is malformed, and no format-wide compatibility is promised.
-- Observed playback differences in the selected corpus (for example a missing
-  tempo change in `Turrican-TITLE`) are recorded as out-of-scope deferred
-  playback observations, not as resolved timing/effects/loop behavior.
+- The delivered private post-interpreter `eClocks` handoff and qualifying
+  speed-divisor correction address one rendered-tick timing disconnect only.
+   Other timing, effects, loop, and compatibility observations remain deferred.
+   The user confirmed that the previously missing Turrican2-TITLE tempo
+   transition is now audible; this supplemental user judgment follows automated
+   evidence, does not replace tests or establish exact-audio or broad
+   compatibility claims, and resolves only that observed transition.
 - A specific version of the **Z-Out theme** causes a segfault on macOS. Historically, this was reported as fixed in Linux; Linux is outside the current project scope.
 - Performance is slightly lower than the legacy OSS implementation but acceptable on modern hardware.
 

@@ -89,9 +89,20 @@ accepts selected slots `0..31` (out-of-domain rejection retained), and the
 bridge defensively validates the selected slot's decoded
 `start[n] <= end[n]` inclusive range fitting the validated trackstep span and
 any captured absolute position within that range before `StartSong(n, 0)`.
-It remains single-global and non-reentrant. The private `src/playback`
-seam provides a fixed-eight voice snapshot and is SDL-free, single-global,
-non-reentrant, and not a public API or MCP surface.
+ It remains single-global and non-reentrant. The private `src/playback`
+ seam provides a fixed-eight voice snapshot and is SDL-free, single-global,
+ non-reentrant, and not a public API or MCP surface.
+
+Track 018 refines that private tick flow: after `tfmxIrqIn()` updates legacy
+interpreter state, the bridge captures post-interpreter `eClocks` with the
+fixed-eight snapshots. `playback_context` forwards that value to
+`tfmx_playback_legacy_mixer_begin_tick` for the same rendered tick. The mixer
+retains its explicit timing argument and existing exact-N pending-frame plus
+remainder arithmetic. The qualifying local speed-control expression now uses
+`eClocks = 0x1B51F8 / low9` when its high mask passes and low9 is 16..511;
+the prior Boolean-divisor defect is corrected. This is private, single-global,
+non-reentrant Phase 4 behavior, not a public API, callback-path, target
+architecture, format-wide compatibility, or exact-audio claim.
 
 The SDL 1.2-era audio API surface is retired: the legacy SDL live-audio path,
 SDL linkage, SDL test scaffolding, and the `-o` file-output path are removed.
@@ -321,8 +332,17 @@ Track 017 assessed its impact as a bounded private selected-subsong start
 change: loader admission remains slot-0-only while the private bridge
 validates the selected slot's inclusive trackstep range and any captured
 absolute position within it before legacy start, with no public API/ABI,
-persistence, adapter, or compatibility-promise change and interpreter/timing/
-audio semantics unchanged beyond selected-start reachability.
+ persistence, adapter, or compatibility-promise change and interpreter/timing/
+ audio semantics unchanged beyond selected-start reachability.
+Track 018 assessed its impact as a bounded private timing correction: the
+post-interpreter `eClocks` value determines the same rendered tick's duration,
+and the qualifying speed-control divisor is corrected; mixer exact-N/remainder
+arithmetic, callback-path restrictions, and device-request zero-frame behavior
+are unchanged. Self-authored automated tests and fixtures are the primary
+   evidence. The user confirmed that the previously missing Turrican2-TITLE
+   tempo transition is now audible. This supplemental user judgment follows
+   automated evidence, does not replace tests or establish exact-audio or broad
+   compatibility claims, and resolves only that observed transition.
 
 ## Current validation boundary
 
@@ -346,8 +366,16 @@ contract tests in `tests/playback/`; the external selected corpus is
 supplemental manual evidence only and is not a repository automated acceptance
 criterion. `main.c` remains minimal
 and is not validated by source-text existence or placement tests. The private
-`src/playback/` subtree is temporary compatibility evidence, not target
-application architecture. See [`TESTING.md`](TESTING.md).
+ `src/playback/` subtree is temporary compatibility evidence, not target
+ application architecture. See [`TESTING.md`](TESTING.md).
+
+Track 018 adds self-authored component and composition evidence for the private
+post-interpreter `eClocks` handoff, header-tempo, qualifying speed-control, and
+   timeshare sources, including same-tick exact-N duration and carried-remainder
+   behavior. The user confirmed that the previously missing Turrican2-TITLE
+   tempo transition is now audible; this supplemental user judgment follows
+   automated evidence, does not replace tests or establish exact-audio or broad
+   compatibility claims, and resolves only that observed transition.
 
 ## Approved target architecture (not implemented; structural seam only)
 

@@ -26,9 +26,16 @@ flags by character (`src/tfmx.c:662`).
 2. `DoAllMacros()` — step all macros and apply effects.
 3. If `CurrSong >= 0`, `DoTracks()` — step the sequencer.
 
-Each call also produces audio for one tick (the mixer derives the sample
-count from the timing model; see `AUDIO.md`). `jiffies` counts ticks
-(`src/player.c:30`, incremented in `DoTracks`).
+`tfmxIrqIn` itself updates interpreter state; it does not assemble audio. In
+this repository's private playback path, the bridge calls `tfmxIrqIn`, then
+captures post-interpreter `eClocks` and voice snapshots
+(`src/playback/playback_legacy_bridge.c`, `tfmx_playback_legacy_bridge_tick`).
+The private context passes that value to the existing mixer timing argument for
+the same rendered tick (`src/playback/playback_context.c`,
+`tfmx_playback_context_tick_at_rate`; `src/playback/playback_legacy_mixer.c`,
+`tfmx_playback_legacy_mixer_begin_tick`). This is repository implementation
+behavior, not a claim about all TFMX players or modules. `jiffies` counts ticks
+(`src/player.c`, `DoTracks`).
 
 ## Macro stepping (`DoMacro`, `RunMacro`)
 
@@ -62,7 +69,7 @@ Subsongs select a contiguous range of tracksteps via `start[song]`/`end[song]`
 |--------|---------|--------|
 | `0` | Stop | `PlayerEnable = 0` (end of song) — `src/player.c:749`–`751`. |
 | `1` | Loop | Loop to trackstep `l[2]` with count `l[3]`; interacts with the global `loops` count and `TrackLoop` (`TrackLoop` is seeded `-1` in `StartSong`, then set to `l[3]`; the loop exits after `l[3] + 1` passes, [inferred] off-by-one as coded) — `src/player.c:752`–`770`. |
-| `2` | Speed | `SpeedCnt = Prescale = l[2]`; if `(l[3] & 0xF200) == 0` and `(l[3] & 0x1FF) > 0xF`, set `eClocks = CIASave = 0x1B51F8 / (l[3] & 0x1FF)` — `src/player.c:771`–`776`. |
+| `2` | Speed | `SpeedCnt = Prescale = l[2]`; if the high mask passes (`(l[3] & 0xF200) == 0`) and low9 (`l[3] & 0x1FF`) is 16..511, set `eClocks = CIASave = 0x1B51F8 / low9` — `src/player.c`, `GetTrackStep`. The prior Boolean-divisor implementation defect is corrected in this repository. |
 | `3` | Timeshare | If `(l[3] & 0x8000) == 0`: clamp `(char)l[3]` at `-0x20`, then `eClocks = CIASave = (14318 * (x + 100)) / 100` and set `multimode = 1` — `src/player.c:777`–`785`. |
 | `4` | Fade | `DoFade(l[2] & 0xFF, l[3] & 0xFF)` — `src/player.c:786`–`789`. |
 | other | — | Prints a diagnostic and skips to the next trackstep — `src/player.c:790`–`794`. |
@@ -109,15 +116,17 @@ Two mechanisms combine ([observed]; the intended physical interpretation is
   125 × 14,318 — consistent with the comment, [inferred]). Control steps 2
   and 3 adjust it as shown above.
 
-The mixer converts `eClocks` to a sample count per tick
-(`src/audio.c:507`–`518`):
+In the current private playback path, the mixer converts the explicit
+post-interpreter `eClocks` timing argument to a frame count per tick
+(`src/playback/playback_legacy_mixer.c`,
+`tfmx_playback_legacy_mixer_begin_tick`):
 
 ```
-samples = floor(eClocks * (outRate / 2) / 357955)   (+ accumulated remainder)
+frames = floor(eClocks * (outputRate / 2) / 357955) (+ accumulated remainder)
 ```
 
-With the defaults (`eClocks = 14318`, `outRate = 44100`) this is ≈ 882
-samples per tick, i.e. ≈ 50 ticks per second ([inferred]: consistent with a
+With the defaults (`eClocks = 14318`, `outputRate = 44100`) this is ≈ 882
+frames per tick, i.e. ≈ 50 ticks per second ([inferred]: consistent with a
 PAL-era 50 Hz VBI assumption; the constants are **[unverified]** against an
 authoritative reference).
 

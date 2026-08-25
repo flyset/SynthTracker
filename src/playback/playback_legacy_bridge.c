@@ -168,14 +168,16 @@ void tfmx_playback_legacy_bridge_set_output_rate(unsigned int output_rate_hz)
     }
 }
 
-int tfmx_playback_legacy_bridge_tick(tfmx_voice_snapshot *snapshots)
+int tfmx_playback_legacy_bridge_tick(tfmx_voice_snapshot *snapshots,
+                                     unsigned int *eclocks)
 {
     unsigned int voice;
 
-    if (snapshots == NULL) {
+    if (snapshots == NULL || eclocks == NULL) {
         return 0;
     }
     tfmxIrqIn();
+    *eclocks = eClocks;
     for (voice = 0; voice < 8; ++voice) {
         snapshots[voice].active = audioData[voice].mode != 0;
         snapshots[voice].pitch = audioData[voice].channel == NULL
