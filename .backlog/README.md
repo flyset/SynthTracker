@@ -51,6 +51,15 @@ Scope
 - Out of scope:
   - ...
 
+Test plan (required before ACTIVE)
+- Test matrix: applicable component, application-level, and build/link/executable
+  integration boundaries, with the observable behavior each will cover.
+- Fixtures: self-authored fixture needs, ownership, and malformed or boundary
+  variants where applicable.
+- Helpers/adapters: ownership, lifecycle, capacity or bounds, reset, and
+  teardown plan where used.
+- Validation and review: commands to run and the independent review boundary.
+
 Milestones
 - [ ] M1) ...
 
@@ -84,15 +93,32 @@ Completion notes
   approval, has a revision proposal pending, or remains current.
 ```
 
+## Pre-ACTIVE Test Planning Gate (non-negotiable)
+
+Every implementation Track must define its complete test plan while it is in
+`DRAFT`, before it can move to `ACTIVE`. The plan must include:
+
+- a complete test matrix across all applicable component, application-level,
+  and build/link/executable integration boundaries;
+- a self-authored fixture plan where fixtures are needed;
+- for any test helper or adapter, its ownership, lifecycle, capacity or bounds,
+  reset, and teardown plan; and
+- validation commands and an independent review boundary.
+
+This planning gate complements, and does not replace, the existing TDD rule:
+each implementation chunk still starts with a focused failing automated test.
+After activation, expanding the defined test plan requires an explicit Track
+update and user approval, except for immediate safety containment.
+
 ## Workflow
 
 1. Create a new Track in `DRAFT` with at least one PORE problem, an objective, acceptance criteria, scope, and a current inventory.
 2. When a Track is roadmap-derived, inspect the current living roadmap during
    planning and cite the roadmap and applicable phase in the Track's Artifacts.
 3. Planning is allowed while DRAFT; implementation is not.
-4. Before implementation, resolve every required public-contract version-impact
-   decision, then move the Track to `ACTIVE` and check its explicit Move-to-ACTIVE
-   plan step.
+4. Before implementation, satisfy the Pre-ACTIVE Test Planning Gate and resolve
+   every required public-contract version-impact decision, then move the Track
+   to `ACTIVE` and check its explicit Move-to-ACTIVE plan step.
 5. Execute only the next stated unchecked plan step or coherent TDD chunk unless the user explicitly requests batching.
 6. For each implementation chunk: write a focused failing test, implement the smallest passing change, refactor, run validations, then update the Track immediately.
 7. Update the Track's plan, inventory, and validation evidence after each meaningful chunk.

@@ -63,7 +63,7 @@ lineage; it does not name the DAW product.
 
 ## Subagents
 
-Always try to use subagents rather than doing the work directly.
+Always delegate work to an appropriate subagent rather than performing it directly, unless no suitable subagent is available. Select subagents based on their specialization and permissions. Provide each subagent with detailed, explicit, and bounded instructions, including a clear objective, expected output, relevant constraints, and an inventory of the files or resources it may access. Use the following subagents:
 
 - Use `@explore` for read-only repository discovery, analysis, and review; it
   must not edit files or run state-changing commands.

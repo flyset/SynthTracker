@@ -61,6 +61,9 @@
 Phase 3 is delivered; Phase 4 is the next execution boundary.
 
 - Use `.backlog/README.md` as the canonical local Track workflow and `.backlog/PORE.md` for problem statements.
-- New Tracks begin in DRAFT; implementation begins only after the Track is ACTIVE and its Move-to-ACTIVE plan step is checked.
+- New implementation Tracks begin in DRAFT and must complete the pre-ACTIVE
+  test planning required by `.backlog/README.md` before moving to ACTIVE.
+  Implementation begins only after the Track is ACTIVE and its Move-to-ACTIVE
+  plan step is checked.
 - Execute ACTIVE work one declared plan step or coherent TDD chunk at a time, then record inventory and validation evidence in the Track.
 - When a completed Track has been committed and pushed, record it in the changelog.
