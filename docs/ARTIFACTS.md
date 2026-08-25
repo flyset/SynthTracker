@@ -22,6 +22,14 @@ bridge repeats both checks defensively before legacy state binding/start). It
 changes no artifact contract, public API/ABI, timing/interpreter/audio
 behavior for accepted modules, persistence, adapter, or compatibility
 promise.
+Track 017 separately delivered bounded private selected-subsong start through
+the existing CLI, context, and bridge path: strict nonnegative `-p` selection
+limited to header slots `0..31`, an absolute `-P` trackstep within the
+selected inclusive range, and selected-range and position validation at the
+private bridge before legacy start, with loader admission remaining
+slot-0-only. It changes no artifact contract, public API/ABI,
+timing/interpreter/audio behavior for accepted modules, persistence, adapter,
+or compatibility promise.
 
 ## Audio Frame Block
 

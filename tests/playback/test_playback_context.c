@@ -12,6 +12,7 @@
 #include "../../src/playback/tfmx_loader.h"
 
 extern unsigned int editbuf[];
+extern int startPat;
 
 static void test_loader_normalizes_fixture_tables(void **state)
 {
@@ -477,7 +478,7 @@ static void test_playback_context_start_rejects_invalid_state_or_subsong(void **
                      TFMX_START_NOT_LOADED);
     assert_int_equal(tfmx_playback_context_load(context, mdat_path, smpl_path),
                      TFMX_LOAD_SUCCESS);
-    assert_int_equal(tfmx_playback_context_start(context, 1),
+    assert_int_equal(tfmx_playback_context_start(context, 32),
                      TFMX_START_UNSUPPORTED_SUBSONG);
     tfmx_playback_context_destroy(context);
 }
@@ -913,6 +914,178 @@ static void test_playback_context_plays_independent_voice_zero_and_one_fixture(v
     tfmx_playback_context_destroy(context);
 }
 
+static void test_playback_context_starts_selected_subsong_slot1(void **state)
+{
+    unsigned char output[3528];
+    size_t bytes = 0;
+    unsigned int non_silent_renders = 0;
+    int first_active_signature = 0;
+    int saw_step1_signature = 0;
+    int saw_step2_signature = 0;
+    tfmx_playback_context *context;
+    tfmx_voice_snapshot snapshot;
+
+    (void)state;
+    context = tfmx_playback_context_create();
+    assert_non_null(context);
+    assert_int_equal(tfmx_playback_context_load(
+                         context, TFMX_SOURCE_ROOT "/tests/fixtures/mdat.selected_01",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8"),
+                     TFMX_LOAD_SUCCESS);
+    assert_int_equal(tfmx_playback_context_start(context, 1), TFMX_START_SUCCESS);
+
+    for (unsigned int tick = 0; tick < 128 && !tfmx_playback_context_is_complete(context);
+         ++tick) {
+        int nonzero = 0;
+
+        assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_SUCCESS);
+        assert_int_equal(tfmx_playback_context_snapshot(context, 0, &snapshot),
+                         TFMX_SNAPSHOT_SUCCESS);
+        if (snapshot.active && snapshot.pitch == 0x06AE) {
+            if (snapshot.volume == 15) {
+                saw_step1_signature = 1;
+                if (first_active_signature == 0) {
+                    first_active_signature = 15;
+                }
+            } else if (snapshot.volume == 9) {
+                saw_step2_signature = 1;
+                if (first_active_signature == 0) {
+                    first_active_signature = 9;
+                }
+            }
+        }
+        memset(output, 0, sizeof(output));
+        assert_int_equal(tfmx_playback_context_render(context, output, sizeof(output), &bytes),
+                         TFMX_RENDER_SUCCESS);
+        for (size_t index = 0; index < bytes; ++index) {
+            if (output[index] != 0) {
+                nonzero = 1;
+                break;
+            }
+        }
+        if (nonzero) {
+            ++non_silent_renders;
+        }
+    }
+
+    /* First active snapshot proves the start began at step 1, not the
+     * volume-9 step 0 or step 2. */
+    assert_int_equal(first_active_signature, 15);
+    assert_true(saw_step1_signature);
+    assert_true(saw_step2_signature);
+    assert_true(non_silent_renders > 0);
+    assert_true(tfmx_playback_context_is_complete(context));
+    tfmx_playback_context_destroy(context);
+}
+
+static void test_playback_context_starts_selected_subsong_slot1_at_absolute_trackstep2(
+    void **state)
+{
+    unsigned char output[3528];
+    size_t bytes = 0;
+    unsigned int non_silent_renders = 0;
+    int first_active_signature = 0;
+    int saw_step1_signature = 0;
+    int saw_step2_signature = 0;
+    tfmx_playback_context *context;
+    tfmx_voice_snapshot snapshot;
+
+    (void)state;
+    context = tfmx_playback_context_create();
+    assert_non_null(context);
+    assert_int_equal(tfmx_playback_context_load(
+                         context, TFMX_SOURCE_ROOT "/tests/fixtures/mdat.selected_01",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8"),
+                     TFMX_LOAD_SUCCESS);
+    /* Existing bridge expression of the absolute -P start position. */
+    startPat = 2;
+    assert_int_equal(tfmx_playback_context_start(context, 1), TFMX_START_SUCCESS);
+
+    for (unsigned int tick = 0; tick < 128 && !tfmx_playback_context_is_complete(context);
+         ++tick) {
+        int nonzero = 0;
+
+        assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_SUCCESS);
+        assert_int_equal(tfmx_playback_context_snapshot(context, 0, &snapshot),
+                         TFMX_SNAPSHOT_SUCCESS);
+        if (snapshot.active && snapshot.pitch == 0x06AE) {
+            if (snapshot.volume == 15) {
+                saw_step1_signature = 1;
+                if (first_active_signature == 0) {
+                    first_active_signature = 15;
+                }
+            } else if (snapshot.volume == 9) {
+                saw_step2_signature = 1;
+                if (first_active_signature == 0) {
+                    first_active_signature = 9;
+                }
+            }
+        }
+        memset(output, 0, sizeof(output));
+        assert_int_equal(tfmx_playback_context_render(context, output, sizeof(output), &bytes),
+                         TFMX_RENDER_SUCCESS);
+        for (size_t index = 0; index < bytes; ++index) {
+            if (output[index] != 0) {
+                nonzero = 1;
+                break;
+            }
+        }
+        if (nonzero) {
+            ++non_silent_renders;
+        }
+    }
+
+    /* First active snapshot proves the override began at step 2, and the
+     * volume-15 step-1 signature never appears. */
+    assert_int_equal(first_active_signature, 9);
+    assert_false(saw_step1_signature);
+    assert_true(saw_step2_signature);
+    assert_true(non_silent_renders > 0);
+    assert_true(tfmx_playback_context_is_complete(context));
+    tfmx_playback_context_destroy(context);
+}
+
+static void test_playback_context_start_rejects_selected_slot_end_span(void **state)
+{
+    tfmx_playback_context *context = tfmx_playback_context_create();
+
+    (void)state;
+    assert_non_null(context);
+    assert_int_equal(
+        tfmx_playback_context_load(
+            context,
+            TFMX_SOURCE_ROOT "/tests/fixtures/mdat.malformed_selected_slot_end_span",
+            TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8"),
+        TFMX_LOAD_SUCCESS);
+    assert_int_equal(tfmx_playback_context_start(context, 1),
+                     TFMX_START_LEGACY_FAILURE);
+    assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_NOT_STARTED);
+    assert_true(tfmx_playback_legacy_bridge_is_complete());
+    assert_false(tfmx_playback_context_is_complete(context));
+    tfmx_playback_context_destroy(context);
+}
+
+static void test_playback_context_start_rejects_absolute_position_outside_selected_range(
+    void **state)
+{
+    tfmx_playback_context *context = tfmx_playback_context_create();
+
+    (void)state;
+    assert_non_null(context);
+    assert_int_equal(tfmx_playback_context_load(
+                         context, TFMX_SOURCE_ROOT "/tests/fixtures/mdat.selected_01",
+                         TFMX_SOURCE_ROOT "/tests/fixtures/smpl.step8"),
+                     TFMX_LOAD_SUCCESS);
+    /* Absolute position 4 is outside the selected inclusive range 1..3. */
+    startPat = 4;
+    assert_int_equal(tfmx_playback_context_start(context, 1),
+                     TFMX_START_LEGACY_FAILURE);
+    assert_int_equal(tfmx_playback_context_tick(context), TFMX_TICK_NOT_STARTED);
+    assert_true(tfmx_playback_legacy_bridge_is_complete());
+    assert_false(tfmx_playback_context_is_complete(context));
+    tfmx_playback_context_destroy(context);
+}
+
 static void assert_malformed_pair_preserves_step8(const char *case_name,
                                                   const char *smpl_name)
 {
@@ -1005,6 +1178,12 @@ int main(void)
         cmocka_unit_test(test_playback_context_applies_envelope_on_engine_ticks_with_tempo_prescale),
         cmocka_unit_test(test_playback_context_clean_start_clears_prior_pitch_state),
         cmocka_unit_test(test_playback_context_plays_independent_voice_zero_and_one_fixture),
+        cmocka_unit_test(test_playback_context_starts_selected_subsong_slot1),
+        cmocka_unit_test(
+            test_playback_context_starts_selected_subsong_slot1_at_absolute_trackstep2),
+        cmocka_unit_test(test_playback_context_start_rejects_selected_slot_end_span),
+        cmocka_unit_test(
+            test_playback_context_start_rejects_absolute_position_outside_selected_range),
         cmocka_unit_test(test_malformed_truncated_mdat),
         cmocka_unit_test(test_malformed_unaligned_track),
         cmocka_unit_test(test_malformed_out_of_range_pattern),

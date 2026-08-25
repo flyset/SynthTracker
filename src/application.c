@@ -1,3 +1,5 @@
+#include <errno.h>
+#include <limits.h>
 #include <signal.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -65,7 +67,25 @@ static void usage(const char *program)
             "-G\\t\\tforce the GemX compatibility hack\n"
             "-V channels\\tselect active channels\n"
             "-S, -x, -~\\tlegacy control switches\n",
-            program);
+             program);
+}
+
+static bool parse_nonnegative_int(const char *text, int *value)
+{
+    char *end;
+    long parsed;
+
+    if (text == NULL || text[0] == '\0') {
+        return false;
+    }
+    errno = 0;
+    parsed = strtol(text, &end, 0);
+    if (end == text || *end != '\0' || errno == ERANGE || parsed < 0 ||
+        parsed > INT_MAX) {
+        return false;
+    }
+    *value = (int)parsed;
+    return true;
 }
 
 static void handle_interrupt(int signum)
@@ -219,17 +239,28 @@ int application_run(int argc, char **argv)
     char mdat_path[PATHNAME_LENGTH];
     char smpl_path[PATHNAME_LENGTH];
     int song_number = 0;
+    int absolute_start = 0;
+    bool absolute_start_present = false;
     int option;
 
     stop_requested = 0;
     opterr = 0;
+    startPat = -1;
     while ((option = getopt(argc, argv, "~xGDiSP:V:p:l:")) != -1) {
         switch (option) {
         case 'P':
-            startPat = strtol(optarg, NULL, 0);
+            if (!parse_nonnegative_int(optarg, &absolute_start)) {
+                usage(argv[0]);
+                return 2;
+            }
+            absolute_start_present = true;
             break;
         case 'p':
-            song_number = strtol(optarg, NULL, 0);
+            if (!parse_nonnegative_int(optarg, &song_number) ||
+                song_number > 31) {
+                usage(argv[0]);
+                return 2;
+            }
             break;
         case 'l':
             loops = strtol(optarg, NULL, 0);
@@ -261,9 +292,15 @@ int application_run(int argc, char **argv)
     tfmx_playback_context *playback = tfmx_playback_context_create();
     if (playback == NULL ||
         tfmx_playback_context_load(playback, mdat_path, smpl_path) !=
-            TFMX_LOAD_SUCCESS ||
-        tfmx_playback_context_start(playback, (unsigned int)song_number) !=
-            TFMX_START_SUCCESS) {
+            TFMX_LOAD_SUCCESS) {
+        tfmx_playback_context_destroy(playback);
+        return 1;
+    }
+    if (absolute_start_present) {
+        startPat = absolute_start;
+    }
+    if (tfmx_playback_context_start(playback, (unsigned int)song_number) !=
+        TFMX_START_SUCCESS) {
         tfmx_playback_context_destroy(playback);
         return 1;
     }

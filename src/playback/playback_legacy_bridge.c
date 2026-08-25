@@ -198,15 +198,33 @@ int tfmx_playback_legacy_bridge_start(const unsigned char *mdat,
                                       const struct tfmx_loader_metadata *metadata,
                                       unsigned int subsong)
 {
+    int requested_start_pat = startPat;
+
     tfmx_playback_legacy_bridge_reset();
-    if (mdat == NULL || smpl == NULL || subsong != 0) {
+    if (mdat == NULL || smpl == NULL || subsong >= 32) {
         return 0;
     }
     if (!copy_state(mdat, mdat_size, smpl, smpl_size, metadata)) {
         tfmx_playback_legacy_bridge_reset();
         return 0;
     }
+    if (hdr.start[subsong] > hdr.end[subsong] ||
+        hdr.end[subsong] >=
+            (metadata->first_pattern - metadata->trackstart) / 16U ||
+        (requested_start_pat >= 0 &&
+         ((unsigned int)requested_start_pat < hdr.start[subsong] ||
+          (unsigned int)requested_start_pat > hdr.end[subsong]))) {
+        tfmx_playback_legacy_bridge_reset();
+        return 0;
+    }
     TfmxInit();
-    StartSong(0, 0);
-    return trackManager.PlayerEnable != 0;
+    if (requested_start_pat >= 0) {
+        startPat = requested_start_pat;
+    }
+    StartSong((int)subsong, 0);
+    if (trackManager.PlayerEnable == 0) {
+        tfmx_playback_legacy_bridge_reset();
+        return 0;
+    }
+    return 1;
 }

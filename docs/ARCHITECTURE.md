@@ -17,8 +17,16 @@ under the C23 baseline as a single executable with no SDL dependency:
 - `src/application.c` coordinates CLI option parsing, loading calls, and the
   private live-output lifecycle: it prepares a private legacy exact-N renderer
   and a private CoreAudio adapter instance, starts the HAL Output Audio Unit
-  route, and stops it on completion or interrupt. The removed `-b`, `-8`, `-f`,
-  `-o`, `-w`, and `-v` options are rejected as unknown options.
+  route, and stops it on completion or interrupt. Track 017 added strict
+  `-p`/`-P` selection handling: nonnegative `-p` is limited to header slots
+  `0..31`, an absolute `-P` trackstep (decimal or `0x` hexadecimal input) is
+  retained after load and restored before start, and malformed, partial,
+  negative, and overflowed `-p`/`-P` values and out-of-domain `-p` values
+  print usage and return status 2 while a parsed `-P` outside the selected
+  range or an invalid selected slot fails with silent status 1 before any
+  audio lifecycle. The
+  removed `-b`, `-8`, `-f`, `-o`, `-w`, and `-v` options are rejected as
+  unknown options.
 - `src/playback/tfmx_loader.c` is the private bounded structural loader
   (Track 016): it checks TFMX magic and minimum size, subsong-0
   `start[0]`/inclusive `end[0]` bounds, and table-pointer alignment/in-bounds
@@ -76,7 +84,12 @@ copied before the interpreter's `patterns`/`macros` globals bind to the
 bridge-owned arrays — never aliasing the copied on-disk table region inside
 `editbuf`. Bounded trackstep conversion over the resolved
 `[trackstart, first_pattern)` range is preserved, and reset clears the
-arrays. It remains single-global and non-reentrant. The private `src/playback`
+arrays. Track 017 extended the private start path: the playback context
+accepts selected slots `0..31` (out-of-domain rejection retained), and the
+bridge defensively validates the selected slot's decoded
+`start[n] <= end[n]` inclusive range fitting the validated trackstep span and
+any captured absolute position within that range before `StartSong(n, 0)`.
+It remains single-global and non-reentrant. The private `src/playback`
 seam provides a fixed-eight voice snapshot and is SDL-free, single-global,
 non-reentrant, and not a public API or MCP surface.
 
@@ -133,6 +146,32 @@ validator, a loader redesign, or a SynthTracker v1 compatibility promise.
   historical Track 015 record; Track 016 later delivered bounded admission,
   and general real-module loader compatibility and the loader redesign remain
   deferred.
+
+### Selected-subsong start (Track 017)
+
+Track 017 delivered bounded private selected-subsong playback through the
+existing CLI, context, and bridge path:
+
+- `src/application.c` strictly parses `-p` and `-P`: nonnegative `-p` is
+  limited to header slots `0..31`; an absolute `-P` trackstep (decimal or `0x`
+  hexadecimal input) is retained after load and restored before start.
+  Malformed, partial, negative, and overflowed `-p`/`-P` values and
+  out-of-domain `-p` values print usage and return status 2; a parsed `-P`
+  position outside the selected subsong's inclusive range or a structurally
+  invalid selected slot returns silent status 1 before any audio lifecycle.
+- `src/playback/playback_context.c` accepts selected slots `0..31` and retains
+  out-of-domain rejection.
+- `src/playback/playback_legacy_bridge.c` defensively validates the selected
+  slot's decoded inclusive range (`start[n] <= end[n]`, fitting the validated
+  trackstep span) and any captured absolute position within that range before
+  legacy `StartSong(n, 0)`; loader admission remains slot-0-only.
+- This is a bounded private start-admission change: it changes no public
+  API/ABI, target architecture, artifact contract, reentrancy, callback-path,
+  timing/interpreter/audio behavior for accepted modules beyond selected-start
+  reachability, persistence, adapter, or compatibility promise.
+- Evidence is automated self-authored fixtures (`mdat.selected_01`,
+  `mdat.malformed_selected_slot_end_span`) and focused tests: playback-context
+  50/50, application 5/5, and full CTest 8/8.
 
 ### Private audio-output live route (Phase 4)
 
@@ -278,6 +317,12 @@ appropriate evidence. This is not a SynthTracker v1 compatibility promise.
 Track 016 assessed its impact as a bounded private module-admission change
 with no intended interpreter/timing/audio semantic change beyond admissibility
 and reachability; observed playback differences are recorded, not resolved.
+Track 017 assessed its impact as a bounded private selected-subsong start
+change: loader admission remains slot-0-only while the private bridge
+validates the selected slot's inclusive trackstep range and any captured
+absolute position within it before legacy start, with no public API/ABI,
+persistence, adapter, or compatibility-promise change and interpreter/timing/
+audio semantics unchanged beyond selected-start reachability.
 
 ## Current validation boundary
 

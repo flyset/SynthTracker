@@ -70,6 +70,21 @@ maintainability, and user experience.
   historical Track 015 record; Track 016 later delivered bounded admission,
   while general real-module loader compatibility remains deferred with no
   format-wide, exact-audio, or resolved timing/effects/loop claims.
+- **Selected subsong playback (Track 017)**: the CLI now supports bounded
+  private selected-subsong playback: strict nonnegative `-p` selection limited
+  to header slots `0..31`, and an absolute `-P` trackstep (decimal or `0x`
+  hexadecimal input) accepted only within the selected subsong's validated
+  inclusive range. Malformed, partial, negative, and overflowed `-p`/`-P`
+  values, and out-of-domain `-p` values, print usage and return status 2; a
+  parsed `-P` position outside the selected range or a structurally invalid
+  selected slot returns silent status 1 before any audio lifecycle. Loader
+  admission remains slot-0-only,
+  and the private bridge validates the selected decoded range and the
+  preserved absolute position before legacy start. This is a bounded private
+  change with no public API/ABI, target architecture, reentrancy,
+  callback-path, or broad compatibility claim. Evidence is automated
+  self-authored selected-subsong fixtures and focused tests: playback-context
+  50/50, application 5/5, and full CTest 8/8.
 - **SDL audio and `-o` removed**: The legacy SDL live-audio path, the `-o`
   file-output path, and the `-b`, `-8`, `-f`, `-o`, `-w`, and `-v` options are
   removed; each removed option is rejected as an unknown option, and `-o` has
@@ -99,6 +114,19 @@ maintainability, and user experience.
   layouts; `Turrican2-LVL1` and `Turrican1-LVL1` are the two user-confirmed
   smoke cases). General real-module loader compatibility remains deferred
   with no format-wide promise.
+- **Selected subsong playback (Track 017)** — bounded private selected-subsong
+  playback through the existing CLI, context, and bridge path: strict
+  nonnegative `-p` selection limited to header slots `0..31`, and an absolute
+  `-P` trackstep (decimal or `0x` hexadecimal input) accepted only within the
+  selected subsong's validated inclusive range. Malformed, partial, negative,
+  and overflowed `-p`/`-P` values, and out-of-domain `-p` values, print usage
+  and return status 2; a parsed `-P` position outside the selected range or a
+  structurally invalid selected slot fails silently with status 1 before the
+  audio lifecycle. Loader admission remains slot-0-only and the private bridge
+  validates the
+  selected decoded range and preserved absolute position before legacy start;
+  no public API/ABI, target architecture, reentrancy, callback-path, or broad
+  compatibility claim results.
 - **macOS support** (the current platform scope)
 - **Private CoreAudio live output (macOS)** — the transitional CLI now plays
   through a private device-driven route: the application composes a private
@@ -135,9 +163,8 @@ maintainability, and user experience.
   real-module loader compatibility remains deferred. This is not an assertion
   that the module is malformed, and no format-wide compatibility is promised.
 - Observed playback differences in the selected corpus (for example a missing
-  tempo change in `Turrican-TITLE` and unavailable `-p 1` subsong selection)
-  are recorded as out-of-scope deferred playback observations, not as
-  resolved timing/effects/loop behavior.
+  tempo change in `Turrican-TITLE`) are recorded as out-of-scope deferred
+  playback observations, not as resolved timing/effects/loop behavior.
 - A specific version of the **Z-Out theme** causes a segfault on macOS. Historically, this was reported as fixed in Linux; Linux is outside the current project scope.
 - Performance is slightly lower than the legacy OSS implementation but acceptable on modern hardware.
 

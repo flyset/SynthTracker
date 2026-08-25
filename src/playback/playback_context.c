@@ -82,14 +82,18 @@ tfmx_start_status tfmx_playback_context_start(tfmx_playback_context *context,
         tfmx_playback_legacy_bridge_reset();
         return TFMX_START_NOT_LOADED;
     }
-    if (subsong != 0) {
+    if (subsong >= 32) {
         tfmx_playback_legacy_bridge_reset();
+        context->started = 0;
+        context->render_ready = 0;
         return TFMX_START_UNSUPPORTED_SUBSONG;
     }
     if (!tfmx_playback_legacy_bridge_start(context->mdat, context->mdat_size,
                                            context->smpl, context->smpl_size,
                                            &context->metadata,
                                            subsong)) {
+        context->started = 0;
+        context->render_ready = 0;
         return TFMX_START_LEGACY_FAILURE;
     }
     context->started = 1;

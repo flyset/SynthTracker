@@ -63,6 +63,12 @@ interpreter/timing/audio semantic change beyond admissibility and reachability
 and no public API/ABI, artifact contract, persistence, adapter, or
 compatibility-promise change; observed playback differences are recorded, not
 resolved.
+Track 017 assessed its impact as a bounded private selected-subsong start
+change: loader admission remains slot-0-only, the private bridge validates the
+selected slot's decoded inclusive range and a captured absolute `-P` position
+within it before legacy start, and no public API/ABI, artifact contract,
+persistence, adapter, or compatibility-promise change results while
+interpreter/timing/audio semantics change only in selected-start reachability.
 
 ### ASR-003 — UI-agnostic playback core
 
