@@ -125,6 +125,17 @@ Always try to use subagents rather than doing the work directly.
 - Read [`docs/TESTING.md`](docs/TESTING.md) for the canonical detailed strategy
   and the nearest scoped [`tests/AGENTS.md`](tests/AGENTS.md) for test-tree rules.
 
+## User Approved Proof of Concept (POC) Work
+
+POC work explores a bounded new idea or approach with the user's explicit approval.
+It may inform a future Track or implementation, but is not a project commitment.
+
+- POC work is not a Track and requires no ACTIVE Track or implementation gates.
+- POC work is not subject to TDD or automated verification requirements.
+- POC code is disposable and must not be used in production. It may be committed only to a dedicated POC branch explicitly approved by the user.
+
+Read applicable guidance first.
+
 ## Project Documentation
 
 - The `docs/` folder is the home for durable project documentation beyond the README.
